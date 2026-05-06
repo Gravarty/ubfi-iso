@@ -46,7 +46,22 @@ jobs:
             e2fsprogs xfsprogs btrfs-progs arch-install-scripts \
             network-manager curl wget ca-certificates \
             nano less gawk psmisc pciutils usbutils \
-            systemd-sysv udev dbus
+            systemd-sysv udev dbus \
+            locales console-setup kbd
+
+      - name: Locale konfigurieren
+        run: |
+          sudo tee rootfs/etc/locale.gen > /dev/null << 'EOF'
+          de_DE.UTF-8 UTF-8
+          en_US.UTF-8 UTF-8
+          EOF
+          sudo sed -i 's/^          //' rootfs/etc/locale.gen
+          sudo chroot rootfs locale-gen
+          sudo tee rootfs/etc/default/locale > /dev/null << 'EOF'
+          LANG=de_DE.UTF-8
+          LC_ALL=de_DE.UTF-8
+          EOF
+          sudo sed -i 's/^          //' rootfs/etc/default/locale
 
       - name: ubfi.sh einbetten
         run: |
@@ -54,10 +69,10 @@ jobs:
           sudo cp ubfi.sh rootfs/usr/local/bin/ubfi.sh
           sudo chmod 755 rootfs/usr/local/bin/ubfi.sh
 
-      - name: Autostart via .profile und autologin konfigurieren
+      - name: Autostart konfigurieren
         run: |
-          # Autologin auf tty1
           sudo mkdir -p rootfs/etc/systemd/system/getty@tty1.service.d
+
           sudo tee rootfs/etc/systemd/system/getty@tty1.service.d/autologin.conf > /dev/null << 'EOF'
           [Service]
           ExecStart=
@@ -65,15 +80,16 @@ jobs:
           EOF
           sudo sed -i 's/^          //' rootfs/etc/systemd/system/getty@tty1.service.d/autologin.conf
 
-          # ubfi.sh automatisch starten wenn root sich einloggt
           sudo tee rootfs/root/.profile > /dev/null << 'EOF'
-          # ubfi automatisch starten
+          export LANG=de_DE.UTF-8
+          export LC_ALL=de_DE.UTF-8
+          export TERM=linux
+          unicode_start 2>/dev/null || true
           if [ "$(tty)" = "/dev/tty1" ]; then
               bash /usr/local/bin/ubfi.sh
           fi
           EOF
           sudo sed -i 's/^          //' rootfs/root/.profile
-          cat rootfs/root/.profile
 
       - name: ISO-Struktur bauen
         run: |
