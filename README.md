@@ -3,7 +3,7 @@
 <p>
   Ubuntu used to offer a minimal ISO that worked similar to Debian. This option was dropped years ago,
   and today the only real alternative is the Server ISO. Unfortunately, it does not properly support
-  language packs. You can download and install them, but the system often does not apply them correctly.
+  language packs. You can download and install them, but the system does not apply them correctly.
 </p>
 
 <p>
