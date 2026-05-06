@@ -21,23 +21,28 @@ jobs:
 
       - name: Basis-System erstellen
         run: |
-          sudo debootstrap --arch=amd64 --components=main,restricted,universe noble rootfs http://archive.ubuntu.com/ubuntu
+          sudo debootstrap \
+            --arch=amd64 \
+            --components=main,restricted,universe \
+            noble rootfs \
+            http://archive.ubuntu.com/ubuntu
 
       - name: Pakete installieren
         run: |
-          sudo chroot rootfs /bin/bash -c "
-            echo 'deb http://archive.ubuntu.com/ubuntu noble main restricted universe' > /etc/apt/sources.list
-            echo 'deb http://archive.ubuntu.com/ubuntu noble-updates main restricted universe' >> /etc/apt/sources.list
-            echo 'deb http://security.ubuntu.com/ubuntu noble-security main restricted universe' >> /etc/apt/sources.list
-            apt-get update -qq
-            DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends \
-              linux-generic casper initramfs-tools \
-              dialog debootstrap parted fdisk dosfstools \
-              e2fsprogs xfsprogs btrfs-progs arch-install-scripts \
-              network-manager curl wget ca-certificates \
-              nano less gawk psmisc pciutils usbutils \
-              systemd-sysv udev dbus
-          "
+          sudo tee rootfs/etc/apt/sources.list > /dev/null << 'EOF'
+          deb http://archive.ubuntu.com/ubuntu noble main restricted universe
+          deb http://archive.ubuntu.com/ubuntu noble-updates main restricted universe
+          deb http://security.ubuntu.com/ubuntu noble-security main restricted universe
+          EOF
+          sudo chroot rootfs apt-get update -qq
+          sudo chroot rootfs env DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends \
+            linux-generic \
+            live-boot live-boot-initramfs-tools casper initramfs-tools \
+            dialog debootstrap parted fdisk dosfstools \
+            e2fsprogs xfsprogs btrfs-progs arch-install-scripts \
+            network-manager curl wget ca-certificates \
+            nano less gawk psmisc pciutils usbutils \
+            systemd-sysv udev dbus
 
       - name: ubfi.sh einbetten
         run: |
@@ -48,7 +53,7 @@ jobs:
         run: |
           sudo mkdir -p rootfs/etc/systemd/system/getty@tty1.service.d
 
-          sudo tee rootfs/etc/systemd/system/ubfi.service > /dev/null << 'SVCEOF'
+          sudo tee rootfs/etc/systemd/system/ubfi.service > /dev/null << 'EOF'
           [Unit]
           Description=ubfi Ubuntu Fast Install
           After=multi-user.target
@@ -65,31 +70,29 @@ jobs:
 
           [Install]
           WantedBy=multi-user.target
-          SVCEOF
+          EOF
 
-          sudo tee rootfs/etc/systemd/system/getty@tty1.service.d/autologin.conf > /dev/null << 'AEOF'
+          sudo tee rootfs/etc/systemd/system/getty@tty1.service.d/autologin.conf > /dev/null << 'EOF'
           [Service]
           ExecStart=
           ExecStart=-/sbin/agetty --autologin root --noclear %I $TERM
-          AEOF
+          EOF
 
-          sudo chroot rootfs systemctl enable ubfi.service
+          sudo chroot rootfs systemctl enable ubfi.service || true
 
-      - name: squashfs erstellen
+      - name: ISO-Struktur bauen
         run: |
           mkdir -p iso/live iso/boot/grub
+          # Echte Dateien kopieren, keine Symlinks
+          sudo cp rootfs/boot/vmlinuz-* iso/live/vmlinuz
+          sudo cp rootfs/boot/initrd.img-* iso/live/initrd
+          # squashfs
           sudo mksquashfs rootfs iso/live/filesystem.squashfs -comp xz -noappend
-
-      - name: Kernel und initrd kopieren
-        run: |
-          VMLINUZ=$(ls rootfs/boot/vmlinuz-* | head -1)
-          INITRD=$(ls rootfs/boot/initrd.img-* | head -1)
-          sudo cp "$VMLINUZ" iso/live/vmlinuz
-          sudo cp "$INITRD" iso/live/initrd
+          ls -lh iso/live/
 
       - name: GRUB konfigurieren
         run: |
-          cat > iso/boot/grub/grub.cfg << 'GEOF'
+          cat > iso/boot/grub/grub.cfg << 'EOF'
           set default=0
           set timeout=3
 
@@ -97,7 +100,7 @@ jobs:
               linux /live/vmlinuz boot=live quiet splash
               initrd /live/initrd
           }
-          GEOF
+          EOF
 
       - name: ISO erstellen
         run: |
