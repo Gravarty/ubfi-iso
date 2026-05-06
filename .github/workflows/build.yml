@@ -27,13 +27,17 @@ jobs:
             noble rootfs \
             http://archive.ubuntu.com/ubuntu
 
-      - name: Pakete installieren
+      - name: sources.list setzen
         run: |
           sudo tee rootfs/etc/apt/sources.list > /dev/null << 'EOF'
           deb http://archive.ubuntu.com/ubuntu noble main restricted universe
           deb http://archive.ubuntu.com/ubuntu noble-updates main restricted universe
           deb http://security.ubuntu.com/ubuntu noble-security main restricted universe
           EOF
+          sudo sed -i 's/^          //' rootfs/etc/apt/sources.list
+
+      - name: Pakete installieren
+        run: |
           sudo chroot rootfs apt-get update -qq
           sudo chroot rootfs env DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends \
             linux-generic \
@@ -46,61 +50,51 @@ jobs:
 
       - name: ubfi.sh einbetten
         run: |
+          sudo mkdir -p rootfs/usr/local/bin
           sudo cp ubfi.sh rootfs/usr/local/bin/ubfi.sh
           sudo chmod 755 rootfs/usr/local/bin/ubfi.sh
 
-      - name: systemd konfigurieren
+      - name: Autostart via .profile und autologin konfigurieren
         run: |
+          # Autologin auf tty1
           sudo mkdir -p rootfs/etc/systemd/system/getty@tty1.service.d
-
-          sudo tee rootfs/etc/systemd/system/ubfi.service > /dev/null << 'EOF'
-          [Unit]
-          Description=ubfi Ubuntu Fast Install
-          After=multi-user.target
-
-          [Service]
-          Type=oneshot
-          ExecStart=/usr/bin/bash /usr/local/bin/ubfi.sh
-          StandardInput=tty
-          StandardOutput=tty
-          StandardError=tty
-          TTYPath=/dev/tty1
-          TTYReset=yes
-          RemainAfterExit=yes
-
-          [Install]
-          WantedBy=multi-user.target
-          EOF
-
           sudo tee rootfs/etc/systemd/system/getty@tty1.service.d/autologin.conf > /dev/null << 'EOF'
           [Service]
           ExecStart=
           ExecStart=-/sbin/agetty --autologin root --noclear %I $TERM
           EOF
+          sudo sed -i 's/^          //' rootfs/etc/systemd/system/getty@tty1.service.d/autologin.conf
 
-          sudo chroot rootfs systemctl enable ubfi.service || true
+          # ubfi.sh automatisch starten wenn root sich einloggt
+          sudo tee rootfs/root/.profile > /dev/null << 'EOF'
+          # ubfi automatisch starten
+          if [ "$(tty)" = "/dev/tty1" ]; then
+              bash /usr/local/bin/ubfi.sh
+          fi
+          EOF
+          sudo sed -i 's/^          //' rootfs/root/.profile
+          cat rootfs/root/.profile
 
       - name: ISO-Struktur bauen
         run: |
           mkdir -p iso/live iso/boot/grub
-          # Echte Dateien kopieren, keine Symlinks
           sudo cp rootfs/boot/vmlinuz-* iso/live/vmlinuz
           sudo cp rootfs/boot/initrd.img-* iso/live/initrd
-          # squashfs
           sudo mksquashfs rootfs iso/live/filesystem.squashfs -comp xz -noappend
           ls -lh iso/live/
 
       - name: GRUB konfigurieren
         run: |
-          cat > iso/boot/grub/grub.cfg << 'EOF'
+          sudo tee iso/boot/grub/grub.cfg > /dev/null << 'EOF'
           set default=0
           set timeout=3
 
           menuentry "ubfi - Ubuntu Fast Install" {
-              linux /live/vmlinuz boot=live quiet splash
+              linux /live/vmlinuz boot=live console=tty1
               initrd /live/initrd
           }
           EOF
+          sudo sed -i 's/^          //' iso/boot/grub/grub.cfg
 
       - name: ISO erstellen
         run: |
