@@ -1,0 +1,173 @@
+name: Build ubfi Live ISO
+
+on:
+  push:
+    branches: [ main ]
+  workflow_dispatch:  # Manuell per Knopfdruck startbar
+
+jobs:
+  build:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 60
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Abhängigkeiten installieren
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y \
+            live-build debootstrap xorriso squashfs-tools \
+            grub-pc-bin grub-efi-amd64-bin mtools \
+            isolinux syslinux-common
+
+      - name: live-build Struktur aufsetzen
+        run: |
+          mkdir lb && cd lb
+
+          lb config \
+            --distribution          noble \
+            --architectures         amd64 \
+            --mirror-bootstrap      http://archive.ubuntu.com/ubuntu \
+            --mirror-chroot         http://archive.ubuntu.com/ubuntu \
+            --mirror-binary         http://archive.ubuntu.com/ubuntu \
+            --mirror-chroot-security http://security.ubuntu.com/ubuntu \
+            --binary-images         iso-hybrid \
+            --bootloader            grub-pc \
+            --debian-installer      none \
+            --archive-areas         "main restricted universe" \
+            --apt-recommends        false \
+            --memtest               none \
+            --iso-volume            "ubfi-live" \
+            --iso-application       "ubfi Ubuntu Fast Install" \
+            --linux-packages        "linux-generic"
+
+      - name: Paketliste erstellen
+        run: |
+          mkdir -p lb/config/package-lists
+          cat > lb/config/package-lists/ubfi.list.chroot << 'EOF'
+          systemd-sysv
+          udev
+          kmod
+          dbus
+          dialog
+          bash
+          nano
+          less
+          iproute2
+          network-manager
+          iputils-ping
+          curl
+          wget
+          ca-certificates
+          parted
+          fdisk
+          util-linux
+          dosfstools
+          e2fsprogs
+          xfsprogs
+          btrfs-progs
+          debootstrap
+          arch-install-scripts
+          grep
+          sed
+          gawk
+          findutils
+          procps
+          psmisc
+          pciutils
+          usbutils
+          EOF
+
+      - name: ubfi.sh einbetten
+        run: |
+          mkdir -p lb/config/includes.chroot/usr/local/bin
+          cp ubfi.sh lb/config/includes.chroot/usr/local/bin/ubfi.sh
+          chmod 755 lb/config/includes.chroot/usr/local/bin/ubfi.sh
+
+      - name: systemd Autostart konfigurieren
+        run: |
+          mkdir -p lb/config/includes.chroot/etc/systemd/system
+          cat > lb/config/includes.chroot/etc/systemd/system/ubfi.service << 'EOF'
+          [Unit]
+          Description=ubfi Ubuntu Fast Install
+          After=multi-user.target network.target
+
+          [Service]
+          Type=oneshot
+          ExecStart=/usr/bin/bash /usr/local/bin/ubfi.sh
+          StandardInput=tty
+          StandardOutput=tty
+          StandardError=tty
+          TTYPath=/dev/tty1
+          TTYReset=yes
+          TTYVHangup=yes
+          RemainAfterExit=yes
+
+          [Install]
+          WantedBy=multi-user.target
+          EOF
+
+          mkdir -p "lb/config/includes.chroot/etc/systemd/system/getty@tty1.service.d"
+          cat > "lb/config/includes.chroot/etc/systemd/system/getty@tty1.service.d/autologin.conf" << 'EOF'
+          [Service]
+          ExecStart=
+          ExecStart=-/sbin/agetty --autologin root --noclear %I $TERM
+          EOF
+
+      - name: chroot Hook erstellen
+        run: |
+          mkdir -p lb/config/hooks/normal
+          cat > lb/config/hooks/normal/0010-ubfi-setup.hook.chroot << 'EOF'
+          #!/bin/bash
+          set -e
+          systemctl enable ubfi.service
+          for svc in bluetooth cups avahi-daemon ModemManager; do
+              systemctl disable "$svc" 2>/dev/null || true
+          done
+          passwd -d root
+          apt-get clean
+          rm -rf /var/lib/apt/lists/*
+          EOF
+          chmod +x lb/config/hooks/normal/0010-ubfi-setup.hook.chroot
+
+      - name: GRUB Bootmenü
+        run: |
+          mkdir -p lb/config/includes.binary/boot/grub
+          cat > lb/config/includes.binary/boot/grub/grub.cfg << 'EOF'
+          set default=0
+          set timeout=3
+
+          menuentry "ubfi – Ubuntu Fast Install" {
+              set gfxpayload=keep
+              linux  /live/vmlinuz boot=live quiet console=tty1
+              initrd /live/initrd
+          }
+
+          menuentry "ubfi – Debug (verbose)" {
+              linux  /live/vmlinuz boot=live console=tty1
+              initrd /live/initrd
+          }
+          EOF
+
+      - name: ISO bauen
+        run: |
+          cd lb
+          sudo lb build 2>&1 | tee ../build.log
+          ls -lh *.iso
+
+      - name: ISO als Artifact hochladen
+        uses: actions/upload-artifact@v4
+        with:
+          name: ubfi-live-iso
+          path: lb/*.iso
+          retention-days: 7
+
+      - name: Build-Log hochladen (bei Fehler)
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: build-log
+          path: build.log
+          retention-days: 3
