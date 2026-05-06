@@ -1430,6 +1430,7 @@ pkg_desktop() {
     local options=()
     options+=("kde-plasma-desktop" "KDE Plasma (minimal, kein Bloat)")
     options+=("gnome-shell"        "GNOME (minimal, kein Bloat)")
+    options+=("mate"               "MATE Desktop")
 
     local sel
     sel=$(dialog --backtitle "$apptitle" --title "$T_DESKTOP_TITLE" \
@@ -1440,7 +1441,7 @@ pkg_desktop() {
 
     if [ "$sel" = "gnome-shell" ]; then
         local lang_code="${locale_val%%_*}"
-        local gnome_pkgs="gnome-shell gnome-session gdm3 gnome-terminal nautilus gnome-text-editor file-roller gnome-calculator gnome-disk-utility gnome-screenshot eog gnome-tweaks gnome-shell-extension-manager fonts-noto-core fonts-noto-cjk fonts-noto-color-emoji gstreamer1.0-libav gstreamer1.0-plugins-bad gstreamer1.0-plugins-ugly gstreamer1.0-plugins-good gstreamer1.0-plugins-base gstreamer1.0-alsa gstreamer1.0-pulseaudio gstreamer1.0-vaapi gnome-system-monitor language-pack-gnome-${lang_code} language-pack-gnome-${lang_code}-base"
+        local gnome_pkgs="gnome-shell gnome-session gdm3 gnome-terminal nautilus gnome-text-editor file-roller gnome-calculator gnome-disk-utility gnome-screenshot eog gnome-tweaks gnome-shell-extension-manager fonts-noto gstreamer1.0-plugins-good gstreamer1.0-plugins-base gstreamer1.0-alsa gstreamer1.0-pulseaudio gstreamer1.0-libav gstreamer1.0-vaapi gnome-system-monitor language-pack-gnome-${lang_code} language-pack-gnome-${lang_code}-base"
         chroot /mnt apt install -y $gnome_pkgs
     elif [ "$sel" = "kde-plasma-desktop" ]; then
         local kde_pkgs="kde-plasma-desktop sddm-theme-breeze ark gwenview kcalc"
@@ -1456,6 +1457,14 @@ pkg_desktop() {
             chroot /mnt apt autoremove -y
             echo "==> Fertig!"
         fi
+    elif [ "$sel" = "mate" ]; then
+        local mate_pkgs="mate-session-manager mate-utils engrampa pluma mate-terminal mate-calc mate-system-monitor mate-control-center mate-themes mate-media mate-power-manager pipewire-pulse mate-tweak debian-mate-default-settings fonts-noto xdg-desktop-portal-gtk gstreamer1.0-plugins-good gstreamer1.0-plugins-base gstreamer1.0-alsa gstreamer1.0-pulseaudio gstreamer1.0-libav gstreamer1.0-vaapi slick-greeter lightdm"
+        chroot /mnt apt install -y --no-install-recommends mate-panel
+        chroot /mnt apt install -y $mate_pkgs
+        # slick-greeter als Standard-Greeter setzen
+        sed -i 's/^#greeter-session=.*/greeter-session=slick-greeter/' /mnt/etc/lightdm/lightdm.conf
+        grep -q "^greeter-session=" /mnt/etc/lightdm/lightdm.conf || \
+            sed -i '/^\[Seat:\*\]/a greeter-session=slick-greeter' /mnt/etc/lightdm/lightdm.conf
     else
         chroot /mnt apt install -y "$sel" sddm-theme-breeze
         grep -q "GTK_USE_PORTAL" /mnt/etc/environment 2>/dev/null || \
@@ -1507,13 +1516,15 @@ PLEOF
 
 pkg_extras() {
     local options=()
-    options+=("vim"          "" off)
-    options+=("nano"         "" on)
-    options+=("git"          "" off)
-    options+=("curl"         "" on)
-    options+=("wget"         "" off)
-    options+=("htop"         "" off)
-    options+=("openssh-server" "" off)
+    options+=("vim"              "" off)
+    options+=("nano"             "" off)
+    options+=("git"              "" off)
+    options+=("curl"             "" off)
+    options+=("wget"             "" off)
+    options+=("htop"             "" off)
+    options+=("bash-completion"  "" off)
+    options+=("fastfetch"        "" off)
+    options+=("openssh-server"   "" off)
 
     local sel
     sel=$(dialog --backtitle "$apptitle" --title "Extras" \
