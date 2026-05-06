@@ -32,7 +32,7 @@
   <li>Installs via <strong>debootstrap</strong> directly from your chosen mirror</li>
   <li>Automatically sets up locale and language packs</li>
   <li>Desktop options: <strong>KDE Plasma</strong>, <strong>GNOME</strong>, or <strong>none</strong></li>
-  <li>GRUB bootloader included</li>
+  <li>You can choose to use systemd-boot or GRUB as your default bootloadr.t</li>
   <li>Optional Firefox / Thunderbird installation as <strong>.deb</strong> (no Snap required)</li>
   <li>🇩🇪 Deutsch / 🇬🇧 English</li>
 </ul>
