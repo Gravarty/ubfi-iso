@@ -150,6 +150,21 @@ Mirror wird auf old-releases.ubuntu.com umgeleitet."
         T_EOL_TITLE="EOL Release"
         T_NO_KERNEL="WARNUNG: Kein Kernel gefunden!"
         T_NM_OK="NetworkManager aktiviert."
+        T_NET_TITLE="Netzwerk"
+        T_NET_LAN="LAN (automatisch)"
+        T_NET_LAN_DESC="DHCP auf allen Ethernet-Interfaces"
+        T_NET_WIFI="WLAN"
+        T_NET_WIFI_DESC="SSID und Passwort eingeben"
+        T_NET_SKIP="Überspringen"
+        T_NET_SKIP_DESC="Ohne Netzwerk fortfahren"
+        T_NET_SSID="WLAN Name (SSID):"
+        T_NET_PW="WLAN Passwort:"
+        T_NET_CONNECTING="Verbinde mit '%s'..."
+        T_NET_OK="Verbunden!"
+        T_NET_FAIL="Verbindung fehlgeschlagen! Nochmal versuchen?"
+        T_NET_LAN_OK="LAN aktiv: %s"
+        T_NET_LAN_FAIL="Kein LAN gefunden oder DHCP fehlgeschlagen."
+        T_NET_CHECK="Prüfe Netzwerk..."
         T_CHROME_CONFIRM="Installiere Google Chrome
 
 Fügt Google Repo + Signing Key hinzu
@@ -294,6 +309,21 @@ Redirecting mirror to old-releases.ubuntu.com."
         T_EOL_TITLE="EOL Release"
         T_NO_KERNEL="WARNING: No kernel found!"
         T_NM_OK="NetworkManager enabled."
+        T_NET_TITLE="Network"
+        T_NET_LAN="LAN (automatic)"
+        T_NET_LAN_DESC="DHCP on all Ethernet interfaces"
+        T_NET_WIFI="WiFi"
+        T_NET_WIFI_DESC="Enter SSID and password"
+        T_NET_SKIP="Skip"
+        T_NET_SKIP_DESC="Continue without network"
+        T_NET_SSID="WiFi name (SSID):"
+        T_NET_PW="WiFi password:"
+        T_NET_CONNECTING="Connecting to '%s'..."
+        T_NET_OK="Connected!"
+        T_NET_FAIL="Connection failed! Try again?"
+        T_NET_LAN_OK="LAN active: %s"
+        T_NET_LAN_FAIL="No LAN found or DHCP failed."
+        T_NET_CHECK="Checking network..."
         T_CHROME_CONFIRM="Install Google Chrome
 
 Adds Google Repo + Signing Key
@@ -1728,8 +1758,116 @@ bootloader_grub_bios() {
 }
 
 # --------------------------------------------------------
-# Reboot
+# Netzwerk-Setup (vor dem Hauptmenü)
 # --------------------------------------------------------
+
+net_wait_dhcp() {
+    # Wartet bis zu 10 Sekunden auf eine IP auf dem Interface $1
+    local iface="$1"
+    local i=0
+    while [ $i -lt 10 ]; do
+        if ip addr show "$iface" 2>/dev/null | grep -q "inet "; then
+            return 0
+        fi
+        sleep 1
+        i=$((i+1))
+    done
+    return 1
+}
+
+net_connect_wifi() {
+    while true; do
+        clear
+        local ssid pw
+        ssid=$(dialog --backtitle "$apptitle" --title "$T_NET_TITLE" \
+            --inputbox "$T_NET_SSID" 0 0 "" 3>&1 1>&2 2>&3)
+        [ "$?" != "0" ] && return 1
+
+        pw=$(dialog --backtitle "$apptitle" --title "$T_NET_TITLE" \
+            --insecure --passwordbox "$T_NET_PW" 0 0 "" 3>&1 1>&2 2>&3)
+        [ "$?" != "0" ] && return 1
+
+        clear
+        printf "$T_NET_CONNECTING\n" "$ssid"
+        if nmcli device wifi connect "$ssid" password "$pw" 2>&1; then
+            echo "$T_NET_OK"
+            sleep 1
+            return 0
+        else
+            dialog --backtitle "$apptitle" --title "$T_NET_TITLE" \
+                --defaultno --yesno "$T_NET_FAIL" 0 0
+            [ "$?" != "0" ] && return 1
+            # Ja = nochmal versuchen → Schleife läuft weiter
+        fi
+    done
+}
+
+net_connect_lan() {
+    clear
+    echo "$T_NET_CHECK"
+    # NM-Autoconnect für alle Ethernet-Interfaces sicherstellen
+    mkdir -p /etc/NetworkManager/conf.d
+    cat > /etc/NetworkManager/conf.d/10-auto-ethernet.conf << 'EOF'
+[main]
+no-auto-default=
+EOF
+    systemctl restart NetworkManager 2>/dev/null
+    sleep 3
+
+    # Erstes Interface mit IP suchen
+    local iface ip
+    iface=$(nmcli -t -f DEVICE,TYPE,STATE device status 2>/dev/null \
+        | awk -F: '$2=="ethernet" && $3=="connected" {print $1; exit}')
+
+    if [ -z "$iface" ]; then
+        # Manuell alle Ethernet-Interfaces versuchen
+        for iface in $(ip link show | awk -F: '$2 !~ /lo|@/ {gsub(/ /,"",$2); print $2}' | grep -v lo); do
+            ip link set "$iface" up 2>/dev/null
+            nmcli device connect "$iface" 2>/dev/null &
+            net_wait_dhcp "$iface" && break
+        done
+        iface=$(ip route show default 2>/dev/null | awk '{print $5; exit}')
+    fi
+
+    ip=$(ip addr show "$iface" 2>/dev/null | awk '/inet / {print $2; exit}')
+    if [ -n "$ip" ]; then
+        printf "$T_NET_LAN_OK\n" "$iface: $ip"
+        sleep 1
+        return 0
+    else
+        echo "$T_NET_LAN_FAIL"
+        sleep 2
+        return 1
+    fi
+}
+
+networkmenu() {
+    while true; do
+        local options=()
+        options+=("$T_NET_LAN"  "$T_NET_LAN_DESC")
+        options+=("$T_NET_WIFI" "$T_NET_WIFI_DESC")
+        options+=("$T_NET_SKIP" "$T_NET_SKIP_DESC")
+
+        local sel
+        sel=$(dialog --backtitle "$apptitle" --title "$T_NET_TITLE" \
+            --menu "" 0 0 0 "${options[@]}" 3>&1 1>&2 2>&3)
+        [ "$?" != "0" ] && return
+
+        case $sel in
+            "$T_NET_LAN")
+                net_connect_lan && return
+                ;;
+            "$T_NET_WIFI")
+                net_connect_wifi && return
+                ;;
+            "$T_NET_SKIP")
+                return
+                ;;
+        esac
+    done
+}
+
+
 
 remountmenu() {
     # Partitionen auswählen (Defaults aus detect_mounted oder vorheriger Session)
@@ -1877,6 +2015,8 @@ for release_script in resolute questing; do
     fi
 done
 
+clear
+networkmenu
 clear
 mainmenu
 
