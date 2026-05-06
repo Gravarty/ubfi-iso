@@ -719,6 +719,12 @@ part_auto_bios() {
         [ "$?" != "0" ] && return
     fi
 
+    # Swap fragen (vor dem Wipe)
+    local swap_size_mib=0
+    dialog --backtitle "$apptitle" --title "Swap" \
+        --yesno "Swap-Partition anlegen?\n\nRAM-Größe: $(( $(grep MemTotal /proc/meminfo | awk '{print $2}') / 1024 ))MiB" 0 0
+    [ "$?" = "0" ] && swap_size_mib=$(( $(grep MemTotal /proc/meminfo | awk '{print $2}') / 1024 ))
+
     dialog --backtitle "$apptitle" --title "$T_PART_TITLE" \
         --defaultno --yesno \
         "$(printf "$T_DATA_LOST" "${disk}$([ -n "$homedisk" ] && echo " und $homedisk")")" 0 0
@@ -744,12 +750,7 @@ part_auto_bios() {
     echo "==> Partitioniere ${disk} (MBR/BIOS Root)..."
     parted -s "$disk" mklabel msdos
 
-    # Swap fragen
-    local swap_size_mib=0
-    dialog --backtitle "$apptitle" --title "Swap" \
-        --yesno "Swap-Partition anlegen?\n\nRAM-Größe: $(( $(grep MemTotal /proc/meminfo | awk '{print $2}') / 1024 ))MiB" 0 0
-    if [ "$?" = "0" ]; then
-        swap_size_mib=$(( $(grep MemTotal /proc/meminfo | awk '{print $2}') / 1024 ))
+    if [ "$swap_size_mib" -gt 0 ]; then
         parted -s "$disk" mkpart primary "${root_fs}" 1MiB "-${swap_size_mib}MiB"
         parted -s "$disk" set 1 boot on
         parted -s "$disk" mkpart primary linux-swap "-${swap_size_mib}MiB" 100%
