@@ -44,39 +44,8 @@ jobs:
       - name: Paketliste erstellen
         run: |
           mkdir -p lb/config/package-lists
-          cat > lb/config/package-lists/ubfi.list.chroot << 'EOF'
-          systemd-sysv
-          udev
-          kmod
-          dbus
-          dialog
-          bash
-          nano
-          less
-          iproute2
-          network-manager
-          iputils-ping
-          curl
-          wget
-          ca-certificates
-          parted
-          fdisk
-          util-linux
-          dosfstools
-          e2fsprogs
-          xfsprogs
-          btrfs-progs
-          debootstrap
-          arch-install-scripts
-          grep
-          sed
-          gawk
-          findutils
-          procps
-          psmisc
-          pciutils
-          usbutils
-          EOF
+          printf 'systemd-sysv\nudev\nkmod\ndbus\ndialog\nbash\nnano\nless\niproute2\nnetwork-manager\niputils-ping\ncurl\nwget\nca-certificates\nparted\nfdisk\nutil-linux\ndosfstools\ne2fsprogs\nxfsprogs\nbtrfs-progs\ndebootstrap\narch-install-scripts\ngrep\nsed\ngawk\nfindutils\nprocps\npsmisc\npciutils\nusbutils\n' \
+            > lb/config/package-lists/ubfi.list.chroot
 
       - name: ubfi.sh einbetten
         run: |
@@ -87,58 +56,27 @@ jobs:
       - name: systemd Autostart konfigurieren
         run: |
           mkdir -p lb/config/includes.chroot/etc/systemd/system
-          cat > lb/config/includes.chroot/etc/systemd/system/ubfi.service << 'EOF'
-          [Unit]
-          Description=ubfi Ubuntu Fast Install
-          After=multi-user.target network.target
-
-          [Service]
-          Type=oneshot
-          ExecStart=/usr/bin/bash /usr/local/bin/ubfi.sh
-          StandardInput=tty
-          StandardOutput=tty
-          StandardError=tty
-          TTYPath=/dev/tty1
-          TTYReset=yes
-          TTYVHangup=yes
-          RemainAfterExit=yes
-
-          [Install]
-          WantedBy=multi-user.target
-          EOF
-
+          printf '[Unit]\nDescription=ubfi Ubuntu Fast Install\nAfter=multi-user.target network.target\n\n[Service]\nType=oneshot\nExecStart=/usr/bin/bash /usr/local/bin/ubfi.sh\nStandardInput=tty\nStandardOutput=tty\nStandardError=tty\nTTYPath=/dev/tty1\nTTYReset=yes\nTTYVHangup=yes\nRemainAfterExit=yes\n\n[Install]\nWantedBy=multi-user.target\n' \
+            > lb/config/includes.chroot/etc/systemd/system/ubfi.service
           mkdir -p "lb/config/includes.chroot/etc/systemd/system/getty@tty1.service.d"
-          cat > "lb/config/includes.chroot/etc/systemd/system/getty@tty1.service.d/autologin.conf" << 'EOF'
-          [Service]
-          ExecStart=
-          ExecStart=-/sbin/agetty --autologin root --noclear %I $TERM
-          EOF
+          printf '[Service]\nExecStart=\nExecStart=-/sbin/agetty --autologin root --noclear %%I $TERM\n' \
+            > "lb/config/includes.chroot/etc/systemd/system/getty@tty1.service.d/autologin.conf"
 
-      - name: chroot Hook erstellen
+      - name: Hooks erstellen
         run: |
           mkdir -p lb/config/hooks/normal
-          HOOK=lb/config/hooks/normal/0010-ubfi-setup.hook.chroot
-          printf '#!/bin/bash\nset -e\nsystemctl enable ubfi.service\nfor svc in bluetooth cups avahi-daemon ModemManager; do\n    systemctl disable "$svc" 2>/dev/null || true\ndone\npasswd -d root\nupdate-initramfs -u -k all\napt-get clean\nrm -rf /var/lib/apt/lists/*\n' > "$HOOK"
-          chmod +x "$HOOK"
+          printf '#!/bin/bash\nset -e\nupdate-initramfs -u -k all\n' \
+            > lb/config/hooks/normal/0005-initramfs.hook.chroot
+          chmod +x lb/config/hooks/normal/0005-initramfs.hook.chroot
+          printf '#!/bin/bash\nset -e\nsystemctl enable ubfi.service\nfor svc in bluetooth cups avahi-daemon ModemManager; do\n    systemctl disable "$svc" 2>/dev/null || true\ndone\npasswd -d root\napt-get clean\nrm -rf /var/lib/apt/lists/*\n' \
+            > lb/config/hooks/normal/0010-ubfi-setup.hook.chroot
+          chmod +x lb/config/hooks/normal/0010-ubfi-setup.hook.chroot
 
       - name: GRUB Bootmenu
         run: |
           mkdir -p lb/config/includes.binary/boot/grub
-          cat > lb/config/includes.binary/boot/grub/grub.cfg << 'EOF'
-          set default=0
-          set timeout=3
-
-          menuentry "ubfi - Ubuntu Fast Install" {
-              set gfxpayload=keep
-              linux  /live/vmlinuz boot=live quiet console=tty1
-              initrd /live/initrd
-          }
-
-          menuentry "ubfi - Debug verbose" {
-              linux  /live/vmlinuz boot=live console=tty1
-              initrd /live/initrd
-          }
-          EOF
+          printf 'set default=0\nset timeout=3\n\nmenuentry "ubfi - Ubuntu Fast Install" {\n    set gfxpayload=keep\n    linux  /live/vmlinuz boot=live quiet console=tty1\n    initrd /live/initrd\n}\n\nmenuentry "ubfi - Debug verbose" {\n    linux  /live/vmlinuz boot=live console=tty1\n    initrd /live/initrd\n}\n' \
+            > lb/config/includes.binary/boot/grub/grub.cfg
 
       - name: ISO bauen
         run: |
