@@ -49,6 +49,16 @@ jobs:
             systemd-sysv udev dbus \
             locales console-setup kbd
 
+      - name: NetworkManager konfigurieren
+        run: |
+          sudo mkdir -p rootfs/etc/NetworkManager/conf.d
+          sudo tee rootfs/etc/NetworkManager/conf.d/10-auto-ethernet.conf > /dev/null << 'EOF'
+          [main]
+          no-auto-default=
+          EOF
+          sudo sed -i 's/^          //' rootfs/etc/NetworkManager/conf.d/10-auto-ethernet.conf
+          sudo chroot rootfs systemctl enable NetworkManager
+
       - name: Locale konfigurieren
         run: |
           sudo tee rootfs/etc/locale.gen > /dev/null << 'EOF'
