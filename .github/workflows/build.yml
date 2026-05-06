@@ -57,6 +57,13 @@ jobs:
           no-auto-default=
           EOF
           sudo sed -i 's/^          //' rootfs/etc/NetworkManager/conf.d/10-auto-ethernet.conf
+
+          sudo tee rootfs/usr/lib/NetworkManager/conf.d/10-globally-managed-devices.conf > /dev/null << 'EOF'
+          [keyfile]
+          unmanaged-devices=none
+          EOF
+          sudo sed -i 's/^          //' rootfs/usr/lib/NetworkManager/conf.d/10-globally-managed-devices.conf
+
           sudo chroot rootfs systemctl enable NetworkManager
 
       - name: Locale konfigurieren
