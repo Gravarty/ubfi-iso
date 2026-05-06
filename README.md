@@ -26,7 +26,7 @@
 
 <ul>
   <li>Network setup at boot, LAN (auto DHCP) or WiFi (SSID + password)</li>
-  <li>Choose your Ubuntu version, 22.04 LTS up to 26.04</li>
+  <li>Choose your Ubuntu version, 14.04 LTS up to 26.04</li>
   <li>Partitioning, GPT/BIOS auto or manual via <strong>cfdisk / fdisk</strong></li>
   <li>Filesystem support: <strong>btrfs, ext4, ext3, ext2, xfs</strong></li>
   <li>Installs via <strong>debootstrap</strong> directly from your chosen mirror</li>
