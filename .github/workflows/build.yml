@@ -22,6 +22,16 @@ jobs:
             grub-pc-bin grub-efi-amd64-bin mtools \
             isolinux syslinux-common
 
+      - name: live-build Hack-Script patchen
+        run: |
+          HACKS=/usr/lib/live/build/lb_chroot_hacks
+          if [ -f "$HACKS" ]; then
+            sudo sed -i 's/chmod 644 "${LB_CHROOT_PATH}\/boot\/initrd.img"/chmod 644 "${LB_CHROOT_PATH}\/boot\/initrd.img" 2>\/dev\/null || true/g' "$HACKS"
+            sudo sed -i 's/chmod 644 "${LB_CHROOT_PATH}\/boot\/initrd.img.old"/chmod 644 "${LB_CHROOT_PATH}\/boot\/initrd.img.old" 2>\/dev\/null || true/g' "$HACKS"
+            echo "Patch applied"
+          fi
+          sudo grep -n "initrd" "$HACKS" || true
+
       - name: live-build konfigurieren
         run: |
           mkdir lb && cd lb
@@ -65,7 +75,7 @@ jobs:
       - name: Hooks erstellen
         run: |
           mkdir -p lb/config/hooks/normal
-          printf '#!/bin/bash\nset -e\nupdate-initramfs -u -k all\n' \
+          printf '#!/bin/bash\nset -e\n# dpkg-trigger ausfuehren damit initramfs wirklich gebaut wird\ndpkg --configure -a 2>/dev/null || true\nupdate-initramfs -c -k all 2>/dev/null || update-initramfs -u -k all 2>/dev/null || true\n# Dangling symlinks fixen bevor lb_chroot_hacks laeuft\nfor f in /boot/initrd.img /boot/initrd.img.old; do\n  if [ -L "$f" ] && [ ! -e "$f" ]; then\n    target=$(readlink "$f")\n    rm -f "$f"\n    ln -sf "$target" "$f" 2>/dev/null || true\n  fi\ndone\n' \
             > lb/config/hooks/normal/0005-initramfs.hook.chroot
           chmod +x lb/config/hooks/normal/0005-initramfs.hook.chroot
           printf '#!/bin/bash\nset -e\nsystemctl enable ubfi.service\nfor svc in bluetooth cups avahi-daemon ModemManager; do\n    systemctl disable "$svc" 2>/dev/null || true\ndone\npasswd -d root\napt-get clean\nrm -rf /var/lib/apt/lists/*\n' \
@@ -80,6 +90,10 @@ jobs:
 
       - name: ISO bauen
         run: |
+          # lb_chroot_hacks bricht wegen dangling initrd symlinks ab.
+          # Fix: initrd symlinks im chroot vor dem Build entfernen (werden von casper neu erstellt)
+          sudo grep -n "initrd" /usr/lib/live/build/chroot_hacks || true
+          sudo sed -i '/initrd\.img/s/^/# PATCHED: /' /usr/lib/live/build/chroot_hacks || true
           cd lb
           sudo lb build 2>&1 | tee ../build.log
           ls -lh *.iso
