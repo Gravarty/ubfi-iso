@@ -40,7 +40,7 @@ jobs:
             --apt-recommends        false \
             --memtest               none \
             --iso-volume            "ubfi-live" \
-            --iso-application       "ubfi Ubuntu Fast Install" \
+            --iso-application       "ubfi Ubuntu Fast Install"
 
       - name: Paketliste erstellen
         run: |
@@ -118,17 +118,18 @@ jobs:
       - name: chroot Hook erstellen
         run: |
           mkdir -p lb/config/hooks/normal
-          cat > lb/config/hooks/normal/0010-ubfi-setup.hook.chroot << 'EOF'
-          #!/bin/bash
-          set -e
-          systemctl enable ubfi.service
-          for svc in bluetooth cups avahi-daemon ModemManager; do
-              systemctl disable "$svc" 2>/dev/null || true
-          done
-          passwd -d root
-          apt-get clean
-          rm -rf /var/lib/apt/lists/*
-          EOF
+          cat > lb/config/hooks/normal/0010-ubfi-setup.hook.chroot << 'HOOKEOF'
+#!/bin/bash
+set -e
+systemctl enable ubfi.service
+for svc in bluetooth cups avahi-daemon ModemManager; do
+    systemctl disable "$svc" 2>/dev/null || true
+done
+passwd -d root
+update-initramfs -u -k all 2>/dev/null || true
+apt-get clean
+rm -rf /var/lib/apt/lists/*
+HOOKEOF
           chmod +x lb/config/hooks/normal/0010-ubfi-setup.hook.chroot
 
       - name: GRUB Bootmenü
