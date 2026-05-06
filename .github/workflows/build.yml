@@ -41,7 +41,6 @@ jobs:
             --memtest               none \
             --iso-volume            "ubfi-live" \
             --iso-application       "ubfi Ubuntu Fast Install" \
-            --linux-packages        "linux-generic"
 
       - name: Paketliste erstellen
         run: |
