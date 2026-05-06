@@ -21,13 +21,22 @@ jobs:
 
       - name: Basis-System erstellen
         run: |
-          sudo debootstrap --arch=amd64 noble rootfs http://archive.ubuntu.com/ubuntu
+          sudo debootstrap --arch=amd64 --components=main,restricted,universe noble rootfs http://archive.ubuntu.com/ubuntu
 
       - name: Pakete installieren
         run: |
           sudo chroot rootfs /bin/bash -c "
-            apt-get update -qq &&
-            apt-get install -y --no-install-recommends               linux-generic casper initramfs-tools               dialog debootstrap parted fdisk dosfstools               e2fsprogs xfsprogs btrfs-progs arch-install-scripts               network-manager curl wget ca-certificates               nano less gawk psmisc pciutils usbutils               systemd-sysv udev dbus
+            echo 'deb http://archive.ubuntu.com/ubuntu noble main restricted universe' > /etc/apt/sources.list
+            echo 'deb http://archive.ubuntu.com/ubuntu noble-updates main restricted universe' >> /etc/apt/sources.list
+            echo 'deb http://security.ubuntu.com/ubuntu noble-security main restricted universe' >> /etc/apt/sources.list
+            apt-get update -qq
+            DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends \
+              linux-generic casper initramfs-tools \
+              dialog debootstrap parted fdisk dosfstools \
+              e2fsprogs xfsprogs btrfs-progs arch-install-scripts \
+              network-manager curl wget ca-certificates \
+              nano less gawk psmisc pciutils usbutils \
+              systemd-sysv udev dbus
           "
 
       - name: ubfi.sh einbetten
@@ -37,7 +46,9 @@ jobs:
 
       - name: systemd konfigurieren
         run: |
-          sudo tee rootfs/etc/systemd/system/ubfi.service << EOF
+          sudo mkdir -p rootfs/etc/systemd/system/getty@tty1.service.d
+
+          sudo tee rootfs/etc/systemd/system/ubfi.service > /dev/null << 'SVCEOF'
           [Unit]
           Description=ubfi Ubuntu Fast Install
           After=multi-user.target
@@ -54,14 +65,13 @@ jobs:
 
           [Install]
           WantedBy=multi-user.target
-          EOF
+          SVCEOF
 
-          sudo mkdir -p "rootfs/etc/systemd/system/getty@tty1.service.d"
-          sudo tee "rootfs/etc/systemd/system/getty@tty1.service.d/autologin.conf" << EOF
+          sudo tee rootfs/etc/systemd/system/getty@tty1.service.d/autologin.conf > /dev/null << 'AEOF'
           [Service]
           ExecStart=
-          ExecStart=-/sbin/agetty --autologin root --noclear %I \$TERM
-          EOF
+          ExecStart=-/sbin/agetty --autologin root --noclear %I $TERM
+          AEOF
 
           sudo chroot rootfs systemctl enable ubfi.service
 
@@ -72,12 +82,14 @@ jobs:
 
       - name: Kernel und initrd kopieren
         run: |
-          sudo cp rootfs/boot/vmlinuz-* iso/live/vmlinuz
-          sudo cp rootfs/boot/initrd.img-* iso/live/initrd
+          VMLINUZ=$(ls rootfs/boot/vmlinuz-* | head -1)
+          INITRD=$(ls rootfs/boot/initrd.img-* | head -1)
+          sudo cp "$VMLINUZ" iso/live/vmlinuz
+          sudo cp "$INITRD" iso/live/initrd
 
       - name: GRUB konfigurieren
         run: |
-          cat > iso/boot/grub/grub.cfg << EOF
+          cat > iso/boot/grub/grub.cfg << 'GEOF'
           set default=0
           set timeout=3
 
@@ -85,11 +97,11 @@ jobs:
               linux /live/vmlinuz boot=live quiet splash
               initrd /live/initrd
           }
-          EOF
+          GEOF
 
       - name: ISO erstellen
         run: |
-          sudo grub-mkrescue -o ubfi-live.iso iso 2>&1
+          sudo grub-mkrescue -o ubfi-live.iso iso
           ls -lh ubfi-live.iso
 
       - name: ISO hochladen
