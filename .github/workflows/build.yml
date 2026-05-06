@@ -14,102 +14,95 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Abhaengigkeiten installieren
+      - name: Tools installieren
         run: |
           sudo apt-get update -qq
-          sudo apt-get install -y \
-            live-build debootstrap xorriso squashfs-tools \
-            grub-pc-bin grub-efi-amd64-bin mtools \
-            isolinux syslinux-common
+          sudo apt-get install -y debootstrap squashfs-tools xorriso grub-pc-bin grub-efi-amd64-bin mtools
 
-      - name: live-build Hack-Script patchen
+      - name: Basis-System erstellen
         run: |
-          HACKS=/usr/lib/live/build/lb_chroot_hacks
-          if [ -f "$HACKS" ]; then
-            sudo sed -i 's/chmod 644 "${LB_CHROOT_PATH}\/boot\/initrd.img"/chmod 644 "${LB_CHROOT_PATH}\/boot\/initrd.img" 2>\/dev\/null || true/g' "$HACKS"
-            sudo sed -i 's/chmod 644 "${LB_CHROOT_PATH}\/boot\/initrd.img.old"/chmod 644 "${LB_CHROOT_PATH}\/boot\/initrd.img.old" 2>\/dev\/null || true/g' "$HACKS"
-            echo "Patch applied"
-          fi
-          sudo grep -n "initrd" "$HACKS" || true
+          sudo debootstrap --arch=amd64 noble rootfs http://archive.ubuntu.com/ubuntu
 
-      - name: live-build konfigurieren
+      - name: Pakete installieren
         run: |
-          mkdir lb && cd lb
-          lb config \
-            --distribution           noble \
-            --architectures          amd64 \
-            --mirror-bootstrap       http://archive.ubuntu.com/ubuntu \
-            --mirror-chroot          http://archive.ubuntu.com/ubuntu \
-            --mirror-binary          http://archive.ubuntu.com/ubuntu \
-            --mirror-chroot-security http://security.ubuntu.com/ubuntu \
-            --binary-images          iso-hybrid \
-            --bootloader             grub-pc \
-            --debian-installer       none \
-            --archive-areas          "main restricted universe" \
-            --apt-recommends         false \
-            --memtest                none \
-            --iso-volume             "ubfi-live" \
-            --iso-application        "ubfi Ubuntu Fast Install"
-
-      - name: Paketliste erstellen
-        run: |
-          mkdir -p lb/config/package-lists
-          printf 'systemd-sysv\nudev\nkmod\ndbus\ndialog\nbash\nnano\nless\niproute2\nnetwork-manager\niputils-ping\ncurl\nwget\nca-certificates\nparted\nfdisk\nutil-linux\ndosfstools\ne2fsprogs\nxfsprogs\nbtrfs-progs\ndebootstrap\narch-install-scripts\ngrep\nsed\ngawk\nfindutils\nprocps\npsmisc\npciutils\nusbutils\n' \
-            > lb/config/package-lists/ubfi.list.chroot
+          sudo chroot rootfs /bin/bash -c "
+            apt-get update -qq &&
+            apt-get install -y --no-install-recommends               linux-generic casper initramfs-tools               dialog debootstrap parted fdisk dosfstools               e2fsprogs xfsprogs btrfs-progs arch-install-scripts               network-manager curl wget ca-certificates               nano less gawk psmisc pciutils usbutils               systemd-sysv udev dbus
+          "
 
       - name: ubfi.sh einbetten
         run: |
-          mkdir -p lb/config/includes.chroot/usr/local/bin
-          cp ubfi.sh lb/config/includes.chroot/usr/local/bin/ubfi.sh
-          chmod 755 lb/config/includes.chroot/usr/local/bin/ubfi.sh
+          sudo cp ubfi.sh rootfs/usr/local/bin/ubfi.sh
+          sudo chmod 755 rootfs/usr/local/bin/ubfi.sh
 
-      - name: systemd Autostart konfigurieren
+      - name: systemd konfigurieren
         run: |
-          mkdir -p lb/config/includes.chroot/etc/systemd/system
-          printf '[Unit]\nDescription=ubfi Ubuntu Fast Install\nAfter=multi-user.target network.target\n\n[Service]\nType=oneshot\nExecStart=/usr/bin/bash /usr/local/bin/ubfi.sh\nStandardInput=tty\nStandardOutput=tty\nStandardError=tty\nTTYPath=/dev/tty1\nTTYReset=yes\nTTYVHangup=yes\nRemainAfterExit=yes\n\n[Install]\nWantedBy=multi-user.target\n' \
-            > lb/config/includes.chroot/etc/systemd/system/ubfi.service
-          mkdir -p "lb/config/includes.chroot/etc/systemd/system/getty@tty1.service.d"
-          printf '[Service]\nExecStart=\nExecStart=-/sbin/agetty --autologin root --noclear %%I $TERM\n' \
-            > "lb/config/includes.chroot/etc/systemd/system/getty@tty1.service.d/autologin.conf"
+          sudo tee rootfs/etc/systemd/system/ubfi.service << EOF
+          [Unit]
+          Description=ubfi Ubuntu Fast Install
+          After=multi-user.target
 
-      - name: Hooks erstellen
+          [Service]
+          Type=oneshot
+          ExecStart=/usr/bin/bash /usr/local/bin/ubfi.sh
+          StandardInput=tty
+          StandardOutput=tty
+          StandardError=tty
+          TTYPath=/dev/tty1
+          TTYReset=yes
+          RemainAfterExit=yes
+
+          [Install]
+          WantedBy=multi-user.target
+          EOF
+
+          sudo mkdir -p "rootfs/etc/systemd/system/getty@tty1.service.d"
+          sudo tee "rootfs/etc/systemd/system/getty@tty1.service.d/autologin.conf" << EOF
+          [Service]
+          ExecStart=
+          ExecStart=-/sbin/agetty --autologin root --noclear %I \$TERM
+          EOF
+
+          sudo chroot rootfs systemctl enable ubfi.service
+
+      - name: squashfs erstellen
         run: |
-          mkdir -p lb/config/hooks/normal
-          printf '#!/bin/bash\nset -e\n# dpkg-trigger ausfuehren damit initramfs wirklich gebaut wird\ndpkg --configure -a 2>/dev/null || true\nupdate-initramfs -c -k all 2>/dev/null || update-initramfs -u -k all 2>/dev/null || true\n# Dangling symlinks fixen bevor lb_chroot_hacks laeuft\nfor f in /boot/initrd.img /boot/initrd.img.old; do\n  if [ -L "$f" ] && [ ! -e "$f" ]; then\n    target=$(readlink "$f")\n    rm -f "$f"\n    ln -sf "$target" "$f" 2>/dev/null || true\n  fi\ndone\n' \
-            > lb/config/hooks/normal/0005-initramfs.hook.chroot
-          chmod +x lb/config/hooks/normal/0005-initramfs.hook.chroot
-          printf '#!/bin/bash\nset -e\nsystemctl enable ubfi.service\nfor svc in bluetooth cups avahi-daemon ModemManager; do\n    systemctl disable "$svc" 2>/dev/null || true\ndone\npasswd -d root\napt-get clean\nrm -rf /var/lib/apt/lists/*\n' \
-            > lb/config/hooks/normal/0010-ubfi-setup.hook.chroot
-          chmod +x lb/config/hooks/normal/0010-ubfi-setup.hook.chroot
+          mkdir -p iso/live iso/boot/grub
+          sudo mksquashfs rootfs iso/live/filesystem.squashfs -comp xz -noappend
 
-      - name: GRUB Bootmenu
+      - name: Kernel und initrd kopieren
         run: |
-          mkdir -p lb/config/includes.binary/boot/grub
-          printf 'set default=0\nset timeout=3\n\nmenuentry "ubfi - Ubuntu Fast Install" {\n    set gfxpayload=keep\n    linux  /live/vmlinuz boot=live quiet console=tty1\n    initrd /live/initrd\n}\n\nmenuentry "ubfi - Debug verbose" {\n    linux  /live/vmlinuz boot=live console=tty1\n    initrd /live/initrd\n}\n' \
-            > lb/config/includes.binary/boot/grub/grub.cfg
+          sudo cp rootfs/boot/vmlinuz-* iso/live/vmlinuz
+          sudo cp rootfs/boot/initrd.img-* iso/live/initrd
 
-      - name: ISO bauen
+      - name: GRUB konfigurieren
         run: |
-          # lb_chroot_hacks bricht wegen dangling initrd symlinks ab.
-          # Fix: initrd symlinks im chroot vor dem Build entfernen (werden von casper neu erstellt)
-          sudo grep -n "initrd" /usr/lib/live/build/chroot_hacks || true
-          sudo sed -i '/initrd\.img/s/^/# PATCHED: /' /usr/lib/live/build/chroot_hacks || true
-          cd lb
-          sudo lb build 2>&1 | tee ../build.log
-          ls -lh *.iso
+          cat > iso/boot/grub/grub.cfg << EOF
+          set default=0
+          set timeout=3
 
-      - name: ISO als Artifact hochladen
-        if: success()
+          menuentry "ubfi - Ubuntu Fast Install" {
+              linux /live/vmlinuz boot=live quiet splash
+              initrd /live/initrd
+          }
+          EOF
+
+      - name: ISO erstellen
+        run: |
+          sudo grub-mkrescue -o ubfi-live.iso iso 2>&1
+          ls -lh ubfi-live.iso
+
+      - name: ISO hochladen
         uses: actions/upload-artifact@v4
         with:
           name: ubfi-live-iso
-          path: lb/*.iso
+          path: ubfi-live.iso
           retention-days: 7
 
-      - name: Build-Log hochladen bei Fehler
+      - name: Build-Log bei Fehler
         if: failure()
         uses: actions/upload-artifact@v4
         with:
           name: build-log
-          path: build.log
+          path: "*.log"
           retention-days: 3
