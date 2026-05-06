@@ -1441,16 +1441,12 @@ pkg_desktop() {
         local lang_code="${locale_val%%_*}"
         local gnome_pkgs="gnome-shell gnome-session gdm3 gnome-terminal nautilus gnome-text-editor file-roller gnome-calculator gnome-disk-utility gnome-screenshot eog gnome-tweaks gnome-shell-extension-manager fonts-noto-core fonts-noto-cjk fonts-noto-color-emoji gstreamer1.0-libav gstreamer1.0-plugins-bad gstreamer1.0-plugins-ugly gstreamer1.0-plugins-good gstreamer1.0-plugins-base gstreamer1.0-alsa gstreamer1.0-pulseaudio gstreamer1.0-vaapi gnome-system-monitor language-pack-gnome-${lang_code} language-pack-gnome-${lang_code}-base"
         chroot /mnt apt install -y $gnome_pkgs
-    else
-        chroot /mnt apt install -y "$sel" sddm-theme-breeze
-        echo "==> Setze GTK_USE_PORTAL=1 in /etc/environment..."
+    elif [ "$sel" = "kde-plasma-desktop" ]; then
+        local kde_pkgs="kde-plasma-desktop sddm-theme-breeze ark gwenview kcalc"
+        local kde_bloat="plasma-discover plasma-discover-backend-snap plasma-discover-notifier plasma-discover-backend-fwupd plasma-discover-common kwalletmanager partitionmanager khelpcenter plasma-thunderbolt plasma-vault plasma-browser-integration plasma-activities-bin plasma-disks kup-backup kde-inotify-survey budgie-sddm-theme qrca"
+        chroot /mnt apt install -y $kde_pkgs
         grep -q "GTK_USE_PORTAL" /mnt/etc/environment 2>/dev/null || \
             echo "GTK_USE_PORTAL=1" >> /mnt/etc/environment
-    fi
-
-    # KDE Bloat entfernen
-    if [ "$sel" = "kde-plasma-desktop" ]; then
-        local kde_bloat="plasma-discover plasma-discover-backend-snap plasma-discover-notifier plasma-discover-backend-fwupd plasma-discover-common kwalletmanager partitionmanager khelpcenter plasma-thunderbolt plasma-vault plasma-browser-integration plasma-activities-bin plasma-disks kup-backup kde-inotify-survey budgie-sddm-theme qrca"
         dialog --backtitle "$apptitle" --title "$T_KDE_BLOAT_TITLE" \
             --yesno "$T_KDE_BLOAT_MSG\n\n${kde_bloat}" 0 0
         if [ "$?" = "0" ]; then
@@ -1459,6 +1455,10 @@ pkg_desktop() {
             chroot /mnt apt autoremove -y
             echo "==> Fertig!"
         fi
+    else
+        chroot /mnt apt install -y "$sel" sddm-theme-breeze
+        grep -q "GTK_USE_PORTAL" /mnt/etc/environment 2>/dev/null || \
+            echo "GTK_USE_PORTAL=1" >> /mnt/etc/environment
     fi
 
     pressanykey
@@ -1805,40 +1805,50 @@ net_connect_wifi() {
 net_connect_lan() {
     clear
     echo "$T_NET_CHECK"
+
     # NM-Autoconnect für alle Ethernet-Interfaces sicherstellen
     mkdir -p /etc/NetworkManager/conf.d
     cat > /etc/NetworkManager/conf.d/10-auto-ethernet.conf << 'EOF'
 [main]
 no-auto-default=
 EOF
-    systemctl restart NetworkManager 2>/dev/null
-    sleep 3
 
-    # Erstes Interface mit IP suchen
+    # NM neu starten falls noch nicht aktiv
+    if ! systemctl is-active --quiet NetworkManager; then
+        systemctl start NetworkManager 2>/dev/null
+    fi
+    sleep 2
+
+    # Alle Ethernet-Interfaces explizit hochbringen
+    for iface in $(ip -o link show | awk -F': ' '$2 !~ /^lo$/ {print $2}'); do
+        local type
+        type=$(cat /sys/class/net/"$iface"/type 2>/dev/null)
+        # type 1 = Ethernet
+        [ "$type" = "1" ] || continue
+        echo "  --> $iface hochbringen..."
+        ip link set "$iface" up 2>/dev/null
+        nmcli device connect "$iface" 2>/dev/null
+    done
+
+    # Bis zu 30 Sekunden auf eine IP warten
+    local waited=0
     local iface ip
-    iface=$(nmcli -t -f DEVICE,TYPE,STATE device status 2>/dev/null \
-        | awk -F: '$2=="ethernet" && $3=="connected" {print $1; exit}')
-
-    if [ -z "$iface" ]; then
-        # Manuell alle Ethernet-Interfaces versuchen
-        for iface in $(ip link show | awk -F: '$2 !~ /lo|@/ {gsub(/ /,"",$2); print $2}' | grep -v lo); do
-            ip link set "$iface" up 2>/dev/null
-            nmcli device connect "$iface" 2>/dev/null &
-            net_wait_dhcp "$iface" && break
-        done
-        iface=$(ip route show default 2>/dev/null | awk '{print $5; exit}')
-    fi
-
-    ip=$(ip addr show "$iface" 2>/dev/null | awk '/inet / {print $2; exit}')
-    if [ -n "$ip" ]; then
-        printf "$T_NET_LAN_OK\n" "$iface: $ip"
+    while [ $waited -lt 30 ]; do
+        iface=$(ip route show default 2>/dev/null | awk 'NR==1{print $5}')
+        ip=$(ip addr show "$iface" 2>/dev/null | awk '/inet / {print $2; exit}')
+        if [ -n "$ip" ]; then
+            printf "$T_NET_LAN_OK\n" "$iface: $ip"
+            sleep 1
+            return 0
+        fi
         sleep 1
-        return 0
-    else
-        echo "$T_NET_LAN_FAIL"
-        sleep 2
-        return 1
-    fi
+        waited=$((waited + 1))
+        echo "  warte... ${waited}s"
+    done
+
+    echo "$T_NET_LAN_FAIL"
+    sleep 2
+    return 1
 }
 
 networkmenu() {
@@ -2019,4 +2029,3 @@ clear
 networkmenu
 clear
 mainmenu
-
