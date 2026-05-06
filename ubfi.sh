@@ -1458,7 +1458,7 @@ pkg_desktop() {
             echo "==> Fertig!"
         fi
     elif [ "$sel" = "mate" ]; then
-        local mate_pkgs="mate-session-manager mate-utils engrampa pluma mate-terminal mate-calc mate-system-monitor mate-control-center mate-themes mate-media mate-power-manager pipewire-pulse mate-tweak debian-mate-default-settings fonts-noto xdg-desktop-portal-gtk gstreamer1.0-plugins-good gstreamer1.0-plugins-base gstreamer1.0-alsa gstreamer1.0-pulseaudio gstreamer1.0-libav gstreamer1.0-vaapi slick-greeter lightdm"
+        local mate_pkgs="mate-session-manager mate-utils engrampa pluma mate-terminal mate-calc mate-system-monitor mate-control-center mate-themes mate-media mate-power-manager pipewire-pulse mate-tweak debian-mate-default-settings fonts-noto xdg-desktop-portal-gtk gstreamer1.0-plugins-good gstreamer1.0-plugins-base gstreamer1.0-alsa gstreamer1.0-pulseaudio gstreamer1.0-libav gstreamer1.0-vaapi slick-greeter"
         chroot /mnt apt install -y --no-install-recommends mate-panel
         chroot /mnt apt install -y $mate_pkgs
         # slick-greeter als Standard-Greeter setzen
