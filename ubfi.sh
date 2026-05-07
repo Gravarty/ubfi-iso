@@ -124,6 +124,7 @@ Prüfe deine Internetverbindung und den Mirror."
         T_PKG_DESKTOP="Desktop"
         T_PKG_DESKTOP_DESC="Desktop-Umgebung wählen"
         T_PKG_PROGRAMMES="Programme"
+        T_SOFTWARE_DESC="Desktop, Programme, Extras"
         T_PKG_PROGRAMMES_DESC="Firefox, Thunderbird, Chrome"
         T_PKG_EXTRAS="Extras"
         T_PKG_EXTRAS_DESC="Weitere Pakete"
@@ -134,6 +135,8 @@ Prüfe deine Internetverbindung und den Mirror."
         T_DESKTOP_TITLE="Desktop"
         T_KDE_BLOAT_TITLE="KDE Bloat"
         T_KDE_BLOAT_MSG="Unnötige KDE Pakete entfernen?"
+        T_GNOME_BLOAT_TITLE="GNOME Bloat"
+        T_GNOME_BLOAT_MSG="Unnötige GNOME Pakete entfernen?"
         T_BOOTLOADER_TITLE="Bootloader"
         T_SDB_CONFIRM="Installiere systemd-boot
 Root UUID: %s
@@ -282,7 +285,8 @@ Check your internet connection and mirror."
         T_PKG_BASE_DESC="linux-generic btrfs-progs efibootmgr sudo"
         T_PKG_DESKTOP="Desktop"
         T_PKG_DESKTOP_DESC="Choose desktop environment"
-        T_PKG_PROGRAMMES="programmes"
+        T_PKG_PROGRAMMES="Programs"
+        T_SOFTWARE_DESC="Desktop, Programs, Extras"
         T_PKG_PROGRAMMES_DESC="Firefox, Thunderbird, Chrome"
         T_PKG_EXTRAS="Extras"
         T_PKG_EXTRAS_DESC="Additional packages"
@@ -293,6 +297,8 @@ Check your internet connection and mirror."
         T_DESKTOP_TITLE="Desktop"
         T_KDE_BLOAT_TITLE="KDE Bloat"
         T_KDE_BLOAT_MSG="Remove unnecessary KDE packages?"
+        T_GNOME_BLOAT_TITLE="GNOME Bloat"
+        T_GNOME_BLOAT_MSG="Remove unnecessary GNOME packages?"
         T_BOOTLOADER_TITLE="Bootloader"
         T_SDB_CONFIRM="Install systemd-boot
 Root UUID: %s
@@ -454,7 +460,7 @@ mainmenu() {
         options+=("$T_DISK"      "$T_DISK_DESC")
         options+=("Install"      "Debootstrap + Basispakete")
         options+=("$T_CONFIG"    "$T_CONFIG_DESC")
-        options+=("Software"     "Desktop, Programme, Extras")
+        options+=("Software"     "$T_SOFTWARE_DESC")
         options+=("Finishing"    "Benutzer, Root-PW, NetworkManager")
         options+=("$T_SHELL"     "$T_SHELL_DESC")
         options+=("$T_REMOUNT"   "$T_REMOUNT_DESC")
@@ -1430,7 +1436,7 @@ pkg_desktop() {
     local options=()
     options+=("kde-plasma-desktop" "KDE Plasma (minimal, kein Bloat)")
     options+=("gnome-shell"        "GNOME (minimal, kein Bloat)")
-    options+=("mate"               "MATE Desktop")
+    options+=("mate-desktop"          "MATE Desktop (minimal, kein Bloat)")
 
     local sel
     sel=$(dialog --backtitle "$apptitle" --title "$T_DESKTOP_TITLE" \
@@ -1442,7 +1448,16 @@ pkg_desktop() {
     if [ "$sel" = "gnome-shell" ]; then
         local lang_code="${locale_val%%_*}"
         local gnome_pkgs="gnome-shell gnome-session gdm3 gnome-terminal nautilus gnome-text-editor file-roller gnome-calculator gnome-disk-utility gnome-screenshot eog gnome-tweaks gnome-shell-extension-manager fonts-noto gstreamer1.0-plugins-good gstreamer1.0-plugins-base gstreamer1.0-alsa gstreamer1.0-pulseaudio gstreamer1.0-libav gstreamer1.0-vaapi gnome-system-monitor language-pack-gnome-${lang_code} language-pack-gnome-${lang_code}-base"
+        local gnome_bloat="yelp* yaru-theme-gnome-shell"
         chroot /mnt apt install -y $gnome_pkgs
+        dialog --backtitle "$apptitle" --title "$T_GNOME_BLOAT_TITLE" \
+            --yesno "$T_GNOME_BLOAT_MSG\n\n${gnome_bloat}" 0 0
+        if [ "$?" = "0" ]; then
+            clear
+            chroot /mnt apt purge -y --ignore-missing $gnome_bloat
+            chroot /mnt apt autoremove -y
+            echo "==> Fertig!"
+        fi
     elif [ "$sel" = "kde-plasma-desktop" ]; then
         local kde_pkgs="kde-plasma-desktop sddm-theme-breeze ark gwenview kcalc"
         local kde_bloat="plasma-discover plasma-discover-backend-snap plasma-discover-notifier plasma-discover-backend-fwupd plasma-discover-common kwalletmanager partitionmanager khelpcenter plasma-thunderbolt plasma-vault plasma-browser-integration plasma-activities-bin plasma-disks kup-backup kde-inotify-survey budgie-sddm-theme qrca"
@@ -1457,7 +1472,7 @@ pkg_desktop() {
             chroot /mnt apt autoremove -y
             echo "==> Fertig!"
         fi
-    elif [ "$sel" = "mate" ]; then
+    elif [ "$sel" = "mate-desktop" ]; then
         local mate_pkgs="mate-session-manager mate-utils engrampa pluma mate-terminal mate-calc mate-system-monitor mate-control-center mate-themes mate-media mate-power-manager pipewire-pulse mate-tweak debian-mate-default-settings fonts-noto xdg-desktop-portal-gtk gstreamer1.0-plugins-good gstreamer1.0-plugins-base gstreamer1.0-alsa gstreamer1.0-pulseaudio gstreamer1.0-libav gstreamer1.0-vaapi slick-greeter"
         chroot /mnt apt install -y --no-install-recommends mate-panel
         chroot /mnt apt install -y $mate_pkgs
