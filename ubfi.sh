@@ -168,11 +168,11 @@ Mirror wird auf old-releases.ubuntu.com umgeleitet."
         T_NET_LAN_OK="LAN aktiv: %s"
         T_NET_LAN_FAIL="Kein LAN gefunden oder DHCP fehlgeschlagen."
         T_NET_CHECK="Prüfe Netzwerk..."
-        T_CHROME_CONFIRM="Installiere Google Chrome
+        T_EXTREPO_CONFIRM="Folgende Pakete werden aus externen Repos installiert:
 
-Fügt Google Repo + Signing Key hinzu
-und installiert google-chrome-stable
+%s
 
+Externe Repos + Signing Keys werden hinzugefügt.
 Fortfahren?"
         T_USER_INPUT="Benutzername:"
         T_DISK_SELECT="EFI + Root Disk wählen"
@@ -330,11 +330,11 @@ Redirecting mirror to old-releases.ubuntu.com."
         T_NET_LAN_OK="LAN active: %s"
         T_NET_LAN_FAIL="No LAN found or DHCP failed."
         T_NET_CHECK="Checking network..."
-        T_CHROME_CONFIRM="Install Google Chrome
+        T_EXTREPO_CONFIRM="The following packages will be installed from external repos:
 
-Adds Google Repo + Signing Key
-and installs google-chrome-stable
+%s
 
+External repos + signing keys will be added.
 Continue?"
         T_USER_INPUT="Username:"
         T_DISK_SELECT="Select EFI + Root Disk"
@@ -1559,6 +1559,8 @@ pkg_programmes() {
     options+=("firefox"          "Firefox (ohne Snap, Mozilla PPA)" on)
     options+=("thunderbird"      "Thunderbird (ohne Snap, Mozilla PPA)" on)
     options+=("google-chrome"    "Google Chrome (Google Repo)" off)
+    options+=("google-earth"     "Google Earth Pro (Google Repo)" off)
+    options+=("spotify"          "Spotify (Spotify Repo)" off)
 
     local sel
     sel=$(dialog --backtitle "$apptitle" --title "$T_PKG_PROGRAMMES" \
@@ -1610,18 +1612,48 @@ EOF
         fi
     fi
 
-    # Google Chrome
-    if echo "$sel" | grep -q "google-chrome"; then
-        dialog --backtitle "$apptitle" --title "Google Chrome" \
-            --yesno "$T_CHROME_CONFIRM" 0 0
+    # Externe Repos (Chrome, Earth, Spotify) — einmaliger Bestätigungs-Dialog
+    local want_chrome=0 want_earth=0 want_spotify=0
+    echo "$sel" | grep -q "google-chrome" && want_chrome=1
+    echo "$sel" | grep -q "google-earth"  && want_earth=1
+    echo "$sel" | grep -q "spotify"       && want_spotify=1
+
+    if [ "$want_chrome" = "1" ] || [ "$want_earth" = "1" ] || [ "$want_spotify" = "1" ]; then
+        local extrepo_list=""
+        [ "$want_chrome"  = "1" ] && extrepo_list="${extrepo_list}- Google Chrome (dl.google.com)\n"
+        [ "$want_earth"   = "1" ] && extrepo_list="${extrepo_list}- Google Earth Pro (dl.google.com)\n"
+        [ "$want_spotify" = "1" ] && extrepo_list="${extrepo_list}- Spotify (repository.spotify.com)\n"
+
+        dialog --backtitle "$apptitle" --title "Externe Repos" \
+            --yesno "$(printf "$T_EXTREPO_CONFIRM" "$extrepo_list")" 0 0
         if [ "$?" = "0" ]; then
-            echo "==> Füge Google Signing Key hinzu..."
-            chroot /mnt /bin/bash -c "wget -q -O - https://dl.google.com/linux/linux_signing_key.pub | tee /etc/apt/trusted.gpg.d/google.asc >/dev/null"
-            echo "==> Füge Google Chrome Repo hinzu..."
-            echo "deb [arch=amd64] https://dl.google.com/linux/chrome/deb/ stable main" > /mnt/etc/apt/sources.list.d/google-chrome.list
-            echo "==> Installiere Google Chrome..."
-            chroot /mnt apt update
-            chroot /mnt apt install -y google-chrome-stable
+            if [ "$want_chrome" = "1" ] || [ "$want_earth" = "1" ]; then
+                echo "==> Füge Google Signing Key hinzu..."
+                chroot /mnt /bin/bash -c "wget -q -O - https://dl.google.com/linux/linux_signing_key.pub | tee /etc/apt/trusted.gpg.d/google.asc >/dev/null"
+            fi
+            if [ "$want_chrome" = "1" ]; then
+                echo "==> Füge Google Chrome Repo hinzu..."
+                echo "deb [arch=amd64] https://dl.google.com/linux/chrome/deb/ stable main" > /mnt/etc/apt/sources.list.d/google-chrome.list
+                echo "==> Installiere Google Chrome..."
+                chroot /mnt apt update
+                chroot /mnt apt install -y google-chrome-stable
+            fi
+            if [ "$want_earth" = "1" ]; then
+                echo "==> Füge Google Earth Pro Repo hinzu..."
+                echo "deb [arch=amd64] https://dl.google.com/linux/earth/deb/ stable main" > /mnt/etc/apt/sources.list.d/google-earth.list
+                echo "==> Installiere Google Earth Pro..."
+                chroot /mnt apt update
+                chroot /mnt apt install -y google-earth-pro-stable
+            fi
+            if [ "$want_spotify" = "1" ]; then
+                echo "==> Füge Spotify Signing Key hinzu..."
+                chroot /mnt /bin/bash -c "curl -sS https://download.spotify.com/debian/pubkey_5384CE82BA52C83A.asc | gpg --dearmor --yes -o /etc/apt/trusted.gpg.d/spotify.gpg"
+                echo "==> Füge Spotify Repo hinzu..."
+                echo "deb https://repository.spotify.com stable non-free" > /mnt/etc/apt/sources.list.d/spotify.list
+                echo "==> Installiere Spotify..."
+                chroot /mnt apt update
+                chroot /mnt apt install -y spotify-client
+            fi
         fi
     fi
 
