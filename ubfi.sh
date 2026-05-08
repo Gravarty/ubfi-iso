@@ -124,6 +124,7 @@ Prüfe deine Internetverbindung und den Mirror."
         T_PKG_DESKTOP="Desktop"
         T_PKG_DESKTOP_DESC="Desktop-Umgebung wählen"
         T_PKG_PROGRAMMES="Programme"
+        T_SOFTWARE_DESC="Desktop, Programme, Extras"
         T_PKG_PROGRAMMES_DESC="Firefox, Thunderbird, Chrome"
         T_PKG_EXTRAS="Extras"
         T_PKG_EXTRAS_DESC="Weitere Pakete"
@@ -134,6 +135,8 @@ Prüfe deine Internetverbindung und den Mirror."
         T_DESKTOP_TITLE="Desktop"
         T_KDE_BLOAT_TITLE="KDE Bloat"
         T_KDE_BLOAT_MSG="Unnötige KDE Pakete entfernen?"
+        T_GNOME_BLOAT_TITLE="GNOME Bloat"
+        T_GNOME_BLOAT_MSG="Unnötige GNOME Pakete entfernen?"
         T_BOOTLOADER_TITLE="Bootloader"
         T_SDB_CONFIRM="Installiere systemd-boot
 Root UUID: %s
@@ -150,6 +153,21 @@ Mirror wird auf old-releases.ubuntu.com umgeleitet."
         T_EOL_TITLE="EOL Release"
         T_NO_KERNEL="WARNUNG: Kein Kernel gefunden!"
         T_NM_OK="NetworkManager aktiviert."
+        T_NET_TITLE="Netzwerk"
+        T_NET_LAN="LAN (automatisch)"
+        T_NET_LAN_DESC="DHCP auf allen Ethernet-Interfaces"
+        T_NET_WIFI="WLAN"
+        T_NET_WIFI_DESC="SSID und Passwort eingeben"
+        T_NET_SKIP="Überspringen"
+        T_NET_SKIP_DESC="Ohne Netzwerk fortfahren"
+        T_NET_SSID="WLAN Name (SSID):"
+        T_NET_PW="WLAN Passwort:"
+        T_NET_CONNECTING="Verbinde mit '%s'..."
+        T_NET_OK="Verbunden!"
+        T_NET_FAIL="Verbindung fehlgeschlagen! Nochmal versuchen?"
+        T_NET_LAN_OK="LAN aktiv: %s"
+        T_NET_LAN_FAIL="Kein LAN gefunden oder DHCP fehlgeschlagen."
+        T_NET_CHECK="Prüfe Netzwerk..."
         T_CHROME_CONFIRM="Installiere Google Chrome
 
 Fügt Google Repo + Signing Key hinzu
@@ -267,7 +285,8 @@ Check your internet connection and mirror."
         T_PKG_BASE_DESC="linux-generic btrfs-progs efibootmgr sudo"
         T_PKG_DESKTOP="Desktop"
         T_PKG_DESKTOP_DESC="Choose desktop environment"
-        T_PKG_PROGRAMMES="programmes"
+        T_PKG_PROGRAMMES="Programs"
+        T_SOFTWARE_DESC="Desktop, Programs, Extras"
         T_PKG_PROGRAMMES_DESC="Firefox, Thunderbird, Chrome"
         T_PKG_EXTRAS="Extras"
         T_PKG_EXTRAS_DESC="Additional packages"
@@ -278,6 +297,8 @@ Check your internet connection and mirror."
         T_DESKTOP_TITLE="Desktop"
         T_KDE_BLOAT_TITLE="KDE Bloat"
         T_KDE_BLOAT_MSG="Remove unnecessary KDE packages?"
+        T_GNOME_BLOAT_TITLE="GNOME Bloat"
+        T_GNOME_BLOAT_MSG="Remove unnecessary GNOME packages?"
         T_BOOTLOADER_TITLE="Bootloader"
         T_SDB_CONFIRM="Install systemd-boot
 Root UUID: %s
@@ -294,6 +315,21 @@ Redirecting mirror to old-releases.ubuntu.com."
         T_EOL_TITLE="EOL Release"
         T_NO_KERNEL="WARNING: No kernel found!"
         T_NM_OK="NetworkManager enabled."
+        T_NET_TITLE="Network"
+        T_NET_LAN="LAN (automatic)"
+        T_NET_LAN_DESC="DHCP on all Ethernet interfaces"
+        T_NET_WIFI="WiFi"
+        T_NET_WIFI_DESC="Enter SSID and password"
+        T_NET_SKIP="Skip"
+        T_NET_SKIP_DESC="Continue without network"
+        T_NET_SSID="WiFi name (SSID):"
+        T_NET_PW="WiFi password:"
+        T_NET_CONNECTING="Connecting to '%s'..."
+        T_NET_OK="Connected!"
+        T_NET_FAIL="Connection failed! Try again?"
+        T_NET_LAN_OK="LAN active: %s"
+        T_NET_LAN_FAIL="No LAN found or DHCP failed."
+        T_NET_CHECK="Checking network..."
         T_CHROME_CONFIRM="Install Google Chrome
 
 Adds Google Repo + Signing Key
@@ -424,7 +460,7 @@ mainmenu() {
         options+=("$T_DISK"      "$T_DISK_DESC")
         options+=("Install"      "Debootstrap + Basispakete")
         options+=("$T_CONFIG"    "$T_CONFIG_DESC")
-        options+=("Software"     "Desktop, Programme, Extras")
+        options+=("Software"     "$T_SOFTWARE_DESC")
         options+=("Finishing"    "Benutzer, Root-PW, NetworkManager")
         options+=("$T_SHELL"     "$T_SHELL_DESC")
         options+=("$T_REMOUNT"   "$T_REMOUNT_DESC")
@@ -689,6 +725,12 @@ part_auto_bios() {
         [ "$?" != "0" ] && return
     fi
 
+    # Swap fragen (vor dem Wipe)
+    local swap_size_mib=0
+    dialog --backtitle "$apptitle" --title "Swap" \
+        --yesno "Swap-Partition anlegen?\n\nRAM-Größe: $(( $(grep MemTotal /proc/meminfo | awk '{print $2}') / 1024 ))MiB" 0 0
+    [ "$?" = "0" ] && swap_size_mib=$(( $(grep MemTotal /proc/meminfo | awk '{print $2}') / 1024 ))
+
     dialog --backtitle "$apptitle" --title "$T_PART_TITLE" \
         --defaultno --yesno \
         "$(printf "$T_DATA_LOST" "${disk}$([ -n "$homedisk" ] && echo " und $homedisk")")" 0 0
@@ -714,12 +756,7 @@ part_auto_bios() {
     echo "==> Partitioniere ${disk} (MBR/BIOS Root)..."
     parted -s "$disk" mklabel msdos
 
-    # Swap fragen
-    local swap_size_mib=0
-    dialog --backtitle "$apptitle" --title "Swap" \
-        --yesno "Swap-Partition anlegen?\n\nRAM-Größe: $(( $(grep MemTotal /proc/meminfo | awk '{print $2}') / 1024 ))MiB" 0 0
-    if [ "$?" = "0" ]; then
-        swap_size_mib=$(( $(grep MemTotal /proc/meminfo | awk '{print $2}') / 1024 ))
+    if [ "$swap_size_mib" -gt 0 ]; then
         parted -s "$disk" mkpart primary "${root_fs}" 1MiB "-${swap_size_mib}MiB"
         parted -s "$disk" set 1 boot on
         parted -s "$disk" mkpart primary linux-swap "-${swap_size_mib}MiB" 100%
@@ -1399,6 +1436,7 @@ pkg_desktop() {
     local options=()
     options+=("kde-plasma-desktop" "KDE Plasma (minimal, kein Bloat)")
     options+=("gnome-shell"        "GNOME (minimal, kein Bloat)")
+    options+=("mate-desktop"          "MATE Desktop (minimal, kein Bloat)")
 
     local sel
     sel=$(dialog --backtitle "$apptitle" --title "$T_DESKTOP_TITLE" \
@@ -1409,18 +1447,23 @@ pkg_desktop() {
 
     if [ "$sel" = "gnome-shell" ]; then
         local lang_code="${locale_val%%_*}"
-        local gnome_pkgs="gnome-shell gnome-session gdm3 gnome-terminal nautilus gnome-text-editor file-roller gnome-calculator gnome-disk-utility gnome-screenshot eog gnome-tweaks gnome-shell-extension-manager fonts-noto-core fonts-noto-cjk fonts-noto-color-emoji gstreamer1.0-libav gstreamer1.0-plugins-bad gstreamer1.0-plugins-ugly gstreamer1.0-plugins-good gstreamer1.0-plugins-base gstreamer1.0-alsa gstreamer1.0-pulseaudio gstreamer1.0-vaapi gnome-system-monitor language-pack-gnome-${lang_code} language-pack-gnome-${lang_code}-base"
+        local gnome_pkgs="gnome-shell gnome-session gdm3 gnome-terminal nautilus gnome-text-editor file-roller gnome-calculator gnome-disk-utility gnome-screenshot eog gnome-tweaks gnome-shell-extension-manager fonts-noto gstreamer1.0-plugins-good gstreamer1.0-plugins-base gstreamer1.0-alsa gstreamer1.0-pulseaudio gstreamer1.0-libav gstreamer1.0-vaapi gnome-system-monitor language-pack-gnome-${lang_code} language-pack-gnome-${lang_code}-base"
+        local gnome_bloat="yelp* yaru-theme-gnome-shell"
         chroot /mnt apt install -y $gnome_pkgs
-    else
-        chroot /mnt apt install -y "$sel" sddm-theme-breeze
-        echo "==> Setze GTK_USE_PORTAL=1 in /etc/environment..."
+        dialog --backtitle "$apptitle" --title "$T_GNOME_BLOAT_TITLE" \
+            --yesno "$T_GNOME_BLOAT_MSG\n\n${gnome_bloat}" 0 0
+        if [ "$?" = "0" ]; then
+            clear
+            chroot /mnt apt purge -y --ignore-missing $gnome_bloat
+            chroot /mnt apt autoremove -y
+            echo "==> Fertig!"
+        fi
+    elif [ "$sel" = "kde-plasma-desktop" ]; then
+        local kde_pkgs="kde-plasma-desktop sddm-theme-breeze ark gwenview kcalc"
+        local kde_bloat="plasma-discover plasma-discover-backend-snap plasma-discover-notifier plasma-discover-backend-fwupd plasma-discover-common kwalletmanager partitionmanager khelpcenter plasma-thunderbolt plasma-vault plasma-browser-integration plasma-activities-bin plasma-disks kup-backup kde-inotify-survey budgie-sddm-theme qrca"
+        chroot /mnt apt install -y $kde_pkgs
         grep -q "GTK_USE_PORTAL" /mnt/etc/environment 2>/dev/null || \
             echo "GTK_USE_PORTAL=1" >> /mnt/etc/environment
-    fi
-
-    # KDE Bloat entfernen
-    if [ "$sel" = "kde-plasma-desktop" ]; then
-        local kde_bloat="plasma-discover plasma-discover-backend-snap plasma-discover-notifier plasma-discover-backend-fwupd plasma-discover-common kwalletmanager partitionmanager khelpcenter plasma-thunderbolt plasma-vault plasma-browser-integration plasma-activities-bin plasma-disks kup-backup kde-inotify-survey budgie-sddm-theme qrca"
         dialog --backtitle "$apptitle" --title "$T_KDE_BLOAT_TITLE" \
             --yesno "$T_KDE_BLOAT_MSG\n\n${kde_bloat}" 0 0
         if [ "$?" = "0" ]; then
@@ -1429,6 +1472,18 @@ pkg_desktop() {
             chroot /mnt apt autoremove -y
             echo "==> Fertig!"
         fi
+    elif [ "$sel" = "mate-desktop" ]; then
+        local mate_pkgs="mate-session-manager mate-utils engrampa pluma mate-terminal mate-calc mate-system-monitor mate-control-center mate-themes mate-media mate-power-manager pipewire-pulse mate-tweak debian-mate-default-settings fonts-noto xdg-desktop-portal-gtk gstreamer1.0-plugins-good gstreamer1.0-plugins-base gstreamer1.0-alsa gstreamer1.0-pulseaudio gstreamer1.0-libav gstreamer1.0-vaapi slick-greeter"
+        chroot /mnt apt install -y --no-install-recommends mate-panel
+        chroot /mnt apt install -y $mate_pkgs
+        # slick-greeter als Standard-Greeter setzen
+        sed -i 's/^#greeter-session=.*/greeter-session=slick-greeter/' /mnt/etc/lightdm/lightdm.conf
+        grep -q "^greeter-session=" /mnt/etc/lightdm/lightdm.conf || \
+            sed -i '/^\[Seat:\*\]/a greeter-session=slick-greeter' /mnt/etc/lightdm/lightdm.conf
+    else
+        chroot /mnt apt install -y "$sel" sddm-theme-breeze
+        grep -q "GTK_USE_PORTAL" /mnt/etc/environment 2>/dev/null || \
+            echo "GTK_USE_PORTAL=1" >> /mnt/etc/environment
     fi
 
     pressanykey
@@ -1476,13 +1531,15 @@ PLEOF
 
 pkg_extras() {
     local options=()
-    options+=("vim"          "" off)
-    options+=("nano"         "" on)
-    options+=("git"          "" off)
-    options+=("curl"         "" on)
-    options+=("wget"         "" off)
-    options+=("htop"         "" off)
-    options+=("openssh-server" "" off)
+    options+=("vim"              "" off)
+    options+=("nano"             "" off)
+    options+=("git"              "" off)
+    options+=("curl"             "" off)
+    options+=("wget"             "" off)
+    options+=("htop"             "" off)
+    options+=("bash-completion"  "" off)
+    options+=("fastfetch"        "" off)
+    options+=("openssh-server"   "" off)
 
     local sel
     sel=$(dialog --backtitle "$apptitle" --title "Extras" \
@@ -1502,7 +1559,6 @@ pkg_programmes() {
     options+=("firefox"          "Firefox (ohne Snap, Mozilla PPA)" on)
     options+=("thunderbird"      "Thunderbird (ohne Snap, Mozilla PPA)" on)
     options+=("google-chrome"    "Google Chrome (Google Repo)" off)
-    options+=("spotify"          "Spotify (Spotify Repo)" off)
 
     local sel
     sel=$(dialog --backtitle "$apptitle" --title "$T_PKG_PROGRAMMES" \
@@ -1567,19 +1623,6 @@ EOF
             chroot /mnt apt update
             chroot /mnt apt install -y google-chrome-stable
         fi
-    fi
-
-    # Spotify
-    if echo "$sel" | grep -q "spotify"; then
-        echo "==> Füge Spotify Signing Key hinzu..."
-        curl -sS https://download.spotify.com/debian/pubkey_5384CE82BA52C83A.asc \
-            | chroot /mnt /bin/bash -c "gpg --dearmor --yes -o /etc/apt/trusted.gpg.d/spotify.gpg"
-        echo "==> Füge Spotify Repo hinzu..."
-        echo "deb https://repository.spotify.com stable non-free" \
-            > /mnt/etc/apt/sources.list.d/spotify.list
-        echo "==> Installiere Spotify..."
-        chroot /mnt apt update
-        chroot /mnt apt install -y spotify-client
     fi
 
     pressanykey
@@ -1742,8 +1785,126 @@ bootloader_grub_bios() {
 }
 
 # --------------------------------------------------------
-# Reboot
+# Netzwerk-Setup (vor dem Hauptmenü)
 # --------------------------------------------------------
+
+net_wait_dhcp() {
+    # Wartet bis zu 10 Sekunden auf eine IP auf dem Interface $1
+    local iface="$1"
+    local i=0
+    while [ $i -lt 10 ]; do
+        if ip addr show "$iface" 2>/dev/null | grep -q "inet "; then
+            return 0
+        fi
+        sleep 1
+        i=$((i+1))
+    done
+    return 1
+}
+
+net_connect_wifi() {
+    while true; do
+        clear
+        local ssid pw
+        ssid=$(dialog --backtitle "$apptitle" --title "$T_NET_TITLE" \
+            --inputbox "$T_NET_SSID" 0 0 "" 3>&1 1>&2 2>&3)
+        [ "$?" != "0" ] && return 1
+
+        pw=$(dialog --backtitle "$apptitle" --title "$T_NET_TITLE" \
+            --insecure --passwordbox "$T_NET_PW" 0 0 "" 3>&1 1>&2 2>&3)
+        [ "$?" != "0" ] && return 1
+
+        clear
+        printf "$T_NET_CONNECTING\n" "$ssid"
+        if nmcli device wifi connect "$ssid" password "$pw" 2>&1; then
+            echo "$T_NET_OK"
+            sleep 1
+            return 0
+        else
+            dialog --backtitle "$apptitle" --title "$T_NET_TITLE" \
+                --defaultno --yesno "$T_NET_FAIL" 0 0
+            [ "$?" != "0" ] && return 1
+            # Ja = nochmal versuchen → Schleife läuft weiter
+        fi
+    done
+}
+
+net_connect_lan() {
+    clear
+    echo "$T_NET_CHECK"
+
+    # NM-Autoconnect für alle Ethernet-Interfaces sicherstellen
+    mkdir -p /etc/NetworkManager/conf.d
+    cat > /etc/NetworkManager/conf.d/10-auto-ethernet.conf << 'EOF'
+[main]
+no-auto-default=
+EOF
+
+    # NM neu starten falls noch nicht aktiv
+    if ! systemctl is-active --quiet NetworkManager; then
+        systemctl start NetworkManager 2>/dev/null
+    fi
+    sleep 2
+
+    # Alle Ethernet-Interfaces explizit hochbringen
+    for iface in $(ip -o link show | awk -F': ' '$2 !~ /^lo$/ {print $2}'); do
+        local type
+        type=$(cat /sys/class/net/"$iface"/type 2>/dev/null)
+        # type 1 = Ethernet
+        [ "$type" = "1" ] || continue
+        echo "  --> $iface hochbringen..."
+        ip link set "$iface" up 2>/dev/null
+        nmcli device connect "$iface" 2>/dev/null
+    done
+
+    # Bis zu 30 Sekunden auf eine IP warten
+    local waited=0
+    local iface ip
+    while [ $waited -lt 30 ]; do
+        iface=$(ip route show default 2>/dev/null | awk 'NR==1{print $5}')
+        ip=$(ip addr show "$iface" 2>/dev/null | awk '/inet / {print $2; exit}')
+        if [ -n "$ip" ]; then
+            printf "$T_NET_LAN_OK\n" "$iface: $ip"
+            sleep 1
+            return 0
+        fi
+        sleep 1
+        waited=$((waited + 1))
+        echo "  warte... ${waited}s"
+    done
+
+    echo "$T_NET_LAN_FAIL"
+    sleep 2
+    return 1
+}
+
+networkmenu() {
+    while true; do
+        local options=()
+        options+=("$T_NET_LAN"  "$T_NET_LAN_DESC")
+        options+=("$T_NET_WIFI" "$T_NET_WIFI_DESC")
+        options+=("$T_NET_SKIP" "$T_NET_SKIP_DESC")
+
+        local sel
+        sel=$(dialog --backtitle "$apptitle" --title "$T_NET_TITLE" \
+            --menu "" 0 0 0 "${options[@]}" 3>&1 1>&2 2>&3)
+        [ "$?" != "0" ] && return
+
+        case $sel in
+            "$T_NET_LAN")
+                net_connect_lan && return
+                ;;
+            "$T_NET_WIFI")
+                net_connect_wifi && return
+                ;;
+            "$T_NET_SKIP")
+                return
+                ;;
+        esac
+    done
+}
+
+
 
 remountmenu() {
     # Partitionen auswählen (Defaults aus detect_mounted oder vorheriger Session)
@@ -1891,5 +2052,7 @@ for release_script in resolute questing; do
     fi
 done
 
+clear
+networkmenu
 clear
 mainmenu
