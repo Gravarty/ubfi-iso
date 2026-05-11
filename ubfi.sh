@@ -1497,8 +1497,8 @@ EOF
 
         chroot /mnt apt update
         echo "==> Installiere TDE Trinity Desktop..."
-        chroot /mnt apt install -y tdebase-trinity gtk-qt-engine-trinity gtk3-tqt-engine-trinity gstreamer1.0-plugins-good gstreamer1.0-plugins-base gstreamer1.0-alsa gstreamer1.0-pulseaudio gstreamer1.0-libav gstreamer1.0-vaapi pipewire-pulse kmix-trinity kcalc-trinity ark-trinity kolourpaint-trinity
-        chroot /mnt apt install -y --no-install-recommends gwenview-trinity
+        chroot /mnt apt install -y tdebase-trinity gtk-qt-engine-trinity gtk3-tqt-engine-trinity gstreamer1.0-plugins-good gstreamer1.0-plugins-base gstreamer1.0-alsa gstreamer1.0-pulseaudio gstreamer1.0-libav gstreamer1.0-vaapi pipewire-pulse kmix-trinity kcalc-trinity ark-trinity kolourpaint-trinity kgtk-qt3-trinity
+        chroot /mnt apt install -y --no-install-recommends gwenview-trinity gwenview-i18n-trinity
 
         if [ -n "$tde_lang" ] && [ "$tde_lang" != "en" ]; then
             echo "==> Installiere TDE Sprachpaket: tde-i18n-${tde_lang}-trinity..."
