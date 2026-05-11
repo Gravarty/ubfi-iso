@@ -1436,7 +1436,8 @@ pkg_desktop() {
     local options=()
     options+=("kde-plasma-desktop" "KDE Plasma (minimal, kein Bloat)")
     options+=("gnome-shell"        "GNOME (minimal, kein Bloat)")
-    options+=("mate-desktop"          "MATE Desktop (minimal, kein Bloat)")
+    options+=("mate-desktop"       "MATE Desktop (minimal, kein Bloat)")
+    options+=("tde-trinity"        "TDE Trinity Desktop (KDE 3.5 Fork)")
 
     local sel
     sel=$(dialog --backtitle "$apptitle" --title "$T_DESKTOP_TITLE" \
@@ -1480,6 +1481,39 @@ pkg_desktop() {
         sed -i 's/^#greeter-session=.*/greeter-session=slick-greeter/' /mnt/etc/lightdm/lightdm.conf
         grep -q "^greeter-session=" /mnt/etc/lightdm/lightdm.conf || \
             sed -i '/^\[Seat:\*\]/a greeter-session=slick-greeter' /mnt/etc/lightdm/lightdm.conf
+    elif [ "$sel" = "tde-trinity" ]; then
+        local lang_code="${locale_val%%_*}"
+        local tde_lang="$lang_code"
+        [ "$locale_val" = "en_GB" ] && tde_lang="engb"
+
+        echo "==> Füge Trinity Desktop Keyring hinzu..."
+        chroot /mnt /bin/bash -c "wget -q -O /tmp/trinity-keyring.deb http://mirror.ppa.trinitydesktop.org/trinity/deb/trinity-keyring.deb && dpkg -i /tmp/trinity-keyring.deb"
+
+        echo "==> Füge Trinity Desktop Repository hinzu..."
+        cat > /mnt/etc/apt/sources.list.d/trinity.list <<EOF
+deb http://mirror.ppa.trinitydesktop.org/trinity/deb/trinity-r14.1.x ${UBUNTU_RELEASE} main deps
+deb-src http://mirror.ppa.trinitydesktop.org/trinity/deb/trinity-r14.1.x ${UBUNTU_RELEASE} main deps
+EOF
+
+        chroot /mnt apt update
+        echo "==> Installiere TDE Trinity Desktop..."
+        chroot /mnt apt install -y tdebase-trinity gtk-qt-engine-trinity gtk3-tqt-engine-trinity gstreamer1.0-plugins-good gstreamer1.0-plugins-base gstreamer1.0-alsa gstreamer1.0-pulseaudio gstreamer1.0-libav gstreamer1.0-vaapi pipewire-pulse
+
+        if [ -n "$tde_lang" ] && [ "$tde_lang" != "en" ]; then
+            echo "==> Installiere TDE Sprachpaket: tde-i18n-${tde_lang}-trinity..."
+            chroot /mnt apt install -y "tde-i18n-${tde_lang}-trinity" 2>/dev/null || \
+                echo "Hinweis: tde-i18n-${tde_lang}-trinity nicht verfügbar."
+        fi
+
+        local tde_bloat="alacritty kregexpeditor-trinity"
+        dialog --backtitle "$apptitle" --title "TDE Bloat" \
+            --yesno "Unnötige TDE Pakete entfernen?\n\n${tde_bloat}" 0 0
+        if [ "$?" = "0" ]; then
+            clear
+            chroot /mnt apt purge -y --ignore-missing $tde_bloat
+            chroot /mnt apt autoremove -y
+            echo "==> Fertig!"
+        fi
     else
         chroot /mnt apt install -y "$sel" sddm-theme-breeze
         grep -q "GTK_USE_PORTAL" /mnt/etc/environment 2>/dev/null || \
