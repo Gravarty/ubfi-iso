@@ -1643,7 +1643,7 @@ EOF
                 echo "deb [arch=amd64] https://dl.google.com/linux/earth/deb/ stable main" > /mnt/etc/apt/sources.list.d/google-earth.list
                 echo "==> Installiere Google Earth Pro..."
                 chroot /mnt apt update
-                chroot /mnt apt install -y google-earth-pro-stable
+                chroot /mnt apt install -y xdg-utils google-earth-pro-stable
             fi
             if [ "$want_spotify" = "1" ]; then
                 echo "==> Füge Spotify Signing Key hinzu..."
