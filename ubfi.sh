@@ -1640,7 +1640,7 @@ EOF
             fi
             if [ "$want_earth" = "1" ]; then
                 echo "==> Füge Google Earth Pro Repo hinzu..."
-                echo "deb [arch=amd64] https://dl.google.com/linux/earth/deb/ stable main" > /mnt/etc/apt/sources.list.d/google-earth.list
+                printf "### THIS FILE IS AUTOMATICALLY CONFIGURED ###\n# You may comment out this entry, but any other modifications may be lost.\ndeb [arch=amd64] http://dl.google.com/linux/earth/deb/ stable main\n" > /mnt/etc/apt/sources.list.d/google-earth-pro.list
                 echo "==> Installiere Google Earth Pro..."
                 chroot /mnt apt update
                 chroot /mnt apt install -y xdg-utils google-earth-pro-stable
