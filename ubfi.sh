@@ -1662,6 +1662,8 @@ EOF
         dialog --backtitle "$apptitle" --title "Externe Repos" \
             --yesno "$(printf "$T_EXTREPO_CONFIRM" "$extrepo_list")" 0 0
         if [ "$?" = "0" ]; then
+            echo "==> Stelle sicher dass curl und wget verfügbar sind..."
+            chroot /mnt apt-get install -y curl wget
             if [ "$want_chrome" = "1" ] || [ "$want_earth" = "1" ]; then
                 echo "==> Füge Google Signing Key hinzu..."
                 chroot /mnt /bin/bash -c "wget -q -O - https://dl.google.com/linux/linux_signing_key.pub | tee /etc/apt/trusted.gpg.d/google.asc >/dev/null"
@@ -1682,12 +1684,13 @@ EOF
             fi
             if [ "$want_spotify" = "1" ]; then
                 echo "==> Füge Spotify Signing Key hinzu..."
-                chroot /mnt /bin/bash -c "curl -sS https://download.spotify.com/debian/pubkey_5384CE82BA52C83A.asc | gpg --dearmor --yes -o /etc/apt/trusted.gpg.d/spotify.gpg"
+                mkdir -p /mnt/etc/apt/keyrings
+                chroot /mnt /bin/bash -c "curl -sS https://download.spotify.com/debian/pubkey_C85668DF69375001.gpg | gpg --dearmor --yes -o /etc/apt/keyrings/spotify.gpg"
                 echo "==> Füge Spotify Repo hinzu..."
-                echo "deb https://repository.spotify.com stable non-free" > /mnt/etc/apt/sources.list.d/spotify.list
+                echo "deb [arch=amd64 signed-by=/etc/apt/keyrings/spotify.gpg] https://repository.spotify.com stable non-free" > /mnt/etc/apt/sources.list.d/spotify.list
                 echo "==> Installiere Spotify..."
-                chroot /mnt apt update
-                chroot /mnt apt install -y spotify-client
+                chroot /mnt apt-get update
+                chroot /mnt apt-get install -y spotify-client
             fi
         fi
     fi
