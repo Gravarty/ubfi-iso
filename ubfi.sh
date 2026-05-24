@@ -1448,7 +1448,7 @@ pkg_desktop() {
 
     if [ "$sel" = "gnome-shell" ]; then
         local lang_code="${locale_val%%_*}"
-        local gnome_pkgs="gnome-shell gnome-session gdm3 gnome-terminal nautilus gnome-text-editor file-roller gnome-calculator gnome-disk-utility gnome-screenshot eog gnome-tweaks gnome-shell-extension-manager fonts-noto gstreamer1.0-plugins-good gstreamer1.0-plugins-base gstreamer1.0-alsa gstreamer1.0-pulseaudio gstreamer1.0-libav gstreamer1.0-vaapi gnome-system-monitor language-pack-gnome-${lang_code} language-pack-gnome-${lang_code}-base"
+        local gnome_pkgs="gnome-shell gnome-session gdm3 gnome-terminal nautilus gnome-text-editor file-roller gnome-calculator gnome-disk-utility gnome-screenshot eog gnome-tweaks gnome-shell-extension-manager fonts-noto gstreamer1.0-plugins-good gstreamer1.0-plugins-base gstreamer1.0-alsa gstreamer1.0-pulseaudio gstreamer1.0-libav gstreamer1.0-vaapi gnome-system-monitor language-pack-gnome-${lang_code} language-pack-gnome-${lang_code}-base cifs-utils"
         local gnome_bloat="yelp* yaru-theme-gnome-shell"
         chroot /mnt apt install -y $gnome_pkgs
         dialog --backtitle "$apptitle" --title "$T_GNOME_BLOAT_TITLE" \
@@ -1460,7 +1460,7 @@ pkg_desktop() {
             echo "==> Fertig!"
         fi
     elif [ "$sel" = "kde-plasma-desktop" ]; then
-        local kde_pkgs="kde-plasma-desktop sddm-theme-breeze ark gwenview kcalc"
+        local kde_pkgs="kde-plasma-desktop sddm-theme-breeze ark gwenview kcalc cifs-utils"
         local kde_bloat="plasma-discover plasma-discover-backend-snap plasma-discover-notifier plasma-discover-backend-fwupd plasma-discover-common kwalletmanager partitionmanager khelpcenter plasma-thunderbolt plasma-vault plasma-browser-integration plasma-activities-bin plasma-disks kup-backup kde-inotify-survey budgie-sddm-theme qrca"
         chroot /mnt apt install -y $kde_pkgs
         grep -q "GTK_USE_PORTAL" /mnt/etc/environment 2>/dev/null || \
@@ -1474,7 +1474,7 @@ pkg_desktop() {
             echo "==> Fertig!"
         fi
     elif [ "$sel" = "mate-desktop" ]; then
-        local mate_pkgs="mate-session-manager mate-utils engrampa pluma mate-terminal mate-calc mate-system-monitor mate-control-center mate-themes mate-media mate-power-manager pipewire-pulse mate-tweak debian-mate-default-settings fonts-noto xdg-desktop-portal-gtk gstreamer1.0-plugins-good gstreamer1.0-plugins-base gstreamer1.0-alsa gstreamer1.0-pulseaudio gstreamer1.0-libav gstreamer1.0-vaapi slick-greeter"
+        local mate_pkgs="mate-session-manager mate-utils engrampa pluma mate-terminal mate-calc mate-system-monitor mate-control-center mate-themes mate-media mate-power-manager pipewire-pulse mate-tweak debian-mate-default-settings fonts-noto xdg-desktop-portal-gtk gstreamer1.0-plugins-good gstreamer1.0-plugins-base gstreamer1.0-alsa gstreamer1.0-pulseaudio gstreamer1.0-libav gstreamer1.0-vaapi slick-greeter cifs-utils"
         chroot /mnt apt install -y --no-install-recommends mate-panel
         chroot /mnt apt install -y $mate_pkgs
         # slick-greeter als Standard-Greeter setzen
@@ -1497,7 +1497,7 @@ EOF
 
         chroot /mnt apt update
         echo "==> Installiere TDE Trinity Desktop..."
-        chroot /mnt apt install -y tdebase-trinity gtk-qt-engine-trinity gtk3-tqt-engine-trinity gstreamer1.0-plugins-good gstreamer1.0-plugins-base gstreamer1.0-alsa gstreamer1.0-pulseaudio gstreamer1.0-libav gstreamer1.0-vaapi pipewire-pulse kmix-trinity kcalc-trinity ark-trinity kolourpaint-trinity kgtk-qt3-trinity
+        chroot /mnt apt install -y tdebase-trinity gtk-qt-engine-trinity gtk3-tqt-engine-trinity gstreamer1.0-plugins-good gstreamer1.0-plugins-base gstreamer1.0-alsa gstreamer1.0-pulseaudio gstreamer1.0-libav gstreamer1.0-vaapi pipewire-pulse kmix-trinity kcalc-trinity ark-trinity kolourpaint-trinity kgtk-qt3-trinity cifs-utils
         chroot /mnt apt install -y --no-install-recommends gwenview-trinity gwenview-i18n-trinity
 
         if [ -n "$tde_lang" ] && [ "$tde_lang" != "en" ]; then
@@ -1515,10 +1515,6 @@ EOF
             chroot /mnt apt autoremove -y
             echo "==> Fertig!"
         fi
-    else
-        chroot /mnt apt install -y "$sel" sddm-theme-breeze
-        grep -q "GTK_USE_PORTAL" /mnt/etc/environment 2>/dev/null || \
-            echo "GTK_USE_PORTAL=1" >> /mnt/etc/environment
     fi
 
     pressanykey
