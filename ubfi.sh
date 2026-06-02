@@ -1869,6 +1869,14 @@ net_wait_dhcp() {
 }
 
 net_connect_wifi() {
+    # WLAN-Vorbereitung: rfkill entsperren, Radio an, NM starten
+    command -v rfkill >/dev/null 2>&1 && rfkill unblock wifi 2>/dev/null
+    if ! systemctl is-active --quiet NetworkManager; then
+        systemctl start NetworkManager 2>/dev/null
+        sleep 2
+    fi
+    nmcli radio wifi on 2>/dev/null
+
     while true; do
         clear
         local ssid pw
@@ -1882,6 +1890,8 @@ net_connect_wifi() {
 
         clear
         printf "$T_NET_CONNECTING\n" "$ssid"
+        nmcli device wifi rescan 2>/dev/null
+        sleep 3
         if nmcli device wifi connect "$ssid" password "$pw" 2>&1; then
             echo "$T_NET_OK"
             sleep 1
