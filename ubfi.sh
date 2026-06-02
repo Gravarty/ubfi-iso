@@ -1544,14 +1544,26 @@ DeviceTimeout=8
 PLEOF
 
     echo "==> Setze kernel cmdline für Bootscreen..."
-    mkdir -p /mnt/etc/kernel
-    local current=""
-    [ -f /mnt/etc/kernel/cmdline ] && current=$(cat /mnt/etc/kernel/cmdline)
-    # Plymouth-Optionen ergänzen falls noch nicht vorhanden
     local plymouth_opts="quiet splash loglevel=0 rd.udev.log_priority=0 vt.global_cursor_default=0"
-    # quiet/splash aus bestehender cmdline entfernen und neu setzen
-    current=$(echo "$current" | sed 's/quiet//g; s/splash//g' | xargs)
-    echo "${current} ${plymouth_opts}" | xargs > /mnt/etc/kernel/cmdline
+
+    if [ -f /mnt/etc/default/grub ]; then
+        # GRUB (BIOS oder EFI)
+        echo "==> GRUB erkannt -> GRUB_CMDLINE_LINUX_DEFAULT setzen..."
+        if grep -q '^GRUB_CMDLINE_LINUX_DEFAULT=' /mnt/etc/default/grub; then
+            sed -i "s|^GRUB_CMDLINE_LINUX_DEFAULT=.*|GRUB_CMDLINE_LINUX_DEFAULT=\"${plymouth_opts}\"|" /mnt/etc/default/grub
+        else
+            echo "GRUB_CMDLINE_LINUX_DEFAULT=\"${plymouth_opts}\"" >> /mnt/etc/default/grub
+        fi
+        chroot /mnt update-grub
+    else
+        # systemd-boot
+        echo "==> systemd-boot erkannt -> /etc/kernel/cmdline setzen..."
+        mkdir -p /mnt/etc/kernel
+        local current=""
+        [ -f /mnt/etc/kernel/cmdline ] && current=$(cat /mnt/etc/kernel/cmdline)
+        current=$(echo "$current" | sed 's/quiet//g; s/splash//g' | xargs)
+        echo "${current} ${plymouth_opts}" | xargs > /mnt/etc/kernel/cmdline
+    fi
 
     echo "==> Regeneriere initramfs..."
     chroot /mnt update-initramfs -u -k all
