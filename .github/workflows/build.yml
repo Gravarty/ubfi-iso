@@ -40,11 +40,11 @@ jobs:
         run: |
           sudo chroot rootfs apt-get update -qq
           sudo chroot rootfs env DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends \
-            linux-generic \
+            linux-generic linux-firmware \
             live-boot live-boot-initramfs-tools casper initramfs-tools \
             dialog debootstrap parted fdisk dosfstools \
             e2fsprogs xfsprogs btrfs-progs arch-install-scripts \
-            network-manager curl wget ca-certificates \
+            network-manager wpasupplicant rfkill curl wget ca-certificates \
             nano less gawk psmisc pciutils usbutils \
             systemd-sysv udev dbus \
             locales console-setup kbd
