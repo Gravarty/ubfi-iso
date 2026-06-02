@@ -757,9 +757,9 @@ part_auto_bios() {
     parted -s "$disk" mklabel msdos
 
     if [ "$swap_size_mib" -gt 0 ]; then
-        parted -s "$disk" mkpart primary "${root_fs}" 1MiB "-${swap_size_mib}MiB"
+        parted -s "$disk" -- mkpart primary "${root_fs}" 1MiB "-${swap_size_mib}MiB"
         parted -s "$disk" set 1 boot on
-        parted -s "$disk" mkpart primary linux-swap "-${swap_size_mib}MiB" 100%
+        parted -s "$disk" -- mkpart primary linux-swap "-${swap_size_mib}MiB" 100%
     else
         parted -s "$disk" mkpart primary "${root_fs}" 1MiB 100%
         parted -s "$disk" set 1 boot on
