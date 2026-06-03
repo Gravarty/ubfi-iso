@@ -136,10 +136,7 @@ Prüfe deine Internetverbindung und den Mirror."
         T_KDE_BLOAT_TITLE="KDE Bloat"
         T_KDE_BLOAT_MSG="Unnötige KDE Pakete entfernen?"
         T_KDE_SESSION_TITLE="KDE Session"
-        T_KDE_SESSION_MSG="Welche Session-Variante installieren?"
-        T_KDE_SESSION_WAYLAND="Nur Wayland (Standard)"
-        T_KDE_SESSION_X11="Zusätzlich X11-Session"
-        T_KDE_SESSION_BOTH="Beides (Wayland + X11)"
+        T_KDE_SESSION_MSG="X11 Plasma Session installieren?"
         T_GNOME_BLOAT_TITLE="GNOME Bloat"
         T_GNOME_BLOAT_MSG="Unnötige GNOME Pakete entfernen?"
         T_BOOTLOADER_TITLE="Bootloader"
@@ -303,10 +300,7 @@ Check your internet connection and mirror."
         T_KDE_BLOAT_TITLE="KDE Bloat"
         T_KDE_BLOAT_MSG="Remove unnecessary KDE packages?"
         T_KDE_SESSION_TITLE="KDE Session"
-        T_KDE_SESSION_MSG="Which session variant to install?"
-        T_KDE_SESSION_WAYLAND="Wayland only (default)"
-        T_KDE_SESSION_X11="Additional X11 session"
-        T_KDE_SESSION_BOTH="Both (Wayland + X11)"
+        T_KDE_SESSION_MSG="Install X11 Plasma session?"
         T_GNOME_BLOAT_TITLE="GNOME Bloat"
         T_GNOME_BLOAT_MSG="Remove unnecessary GNOME packages?"
         T_BOOTLOADER_TITLE="Bootloader"
@@ -1475,14 +1469,10 @@ pkg_desktop() {
         chroot /mnt apt install -y $kde_pkgs
         grep -q "GTK_USE_PORTAL" /mnt/etc/environment 2>/dev/null || \
             echo "GTK_USE_PORTAL=1" >> /mnt/etc/environment
-        # Session-Auswahl: Wayland (Standard), X11, oder beides
-        local kde_session
-        kde_session=$(dialog --backtitle "$apptitle" --title "$T_KDE_SESSION_TITLE" \
-            --menu "$T_KDE_SESSION_MSG" 0 0 3 \
-            "wayland" "$T_KDE_SESSION_WAYLAND" \
-            "x11"     "$T_KDE_SESSION_X11" \
-            "both"    "$T_KDE_SESSION_BOTH" 3>&1 1>&2 2>&3)
-        if [ "$kde_session" = "x11" ] || [ "$kde_session" = "both" ]; then
+        # X11-Session optional dazu installieren
+        dialog --backtitle "$apptitle" --title "$T_KDE_SESSION_TITLE" \
+            --yesno "$T_KDE_SESSION_MSG" 0 0
+        if [ "$?" = "0" ]; then
             clear
             echo "==> Installiere X11-Session (plasma-session-x11)..."
             chroot /mnt apt install -y plasma-session-x11
