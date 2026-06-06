@@ -1464,7 +1464,7 @@ pkg_desktop() {
             echo "==> Fertig!"
         fi
     elif [ "$sel" = "kde-plasma-desktop" ]; then
-        local kde_pkgs="kde-plasma-desktop sddm-theme-breeze ark gwenview kcalc cifs-utils"
+        local kde_pkgs="kde-plasma-desktop plasma-widgets-addons kde-spectacle sddm-theme-breeze ark gwenview kcalc cifs-utils"
         local kde_bloat="plasma-discover plasma-discover-backend-snap plasma-discover-notifier plasma-discover-backend-fwupd plasma-discover-common kwalletmanager partitionmanager khelpcenter plasma-thunderbolt plasma-vault plasma-browser-integration plasma-activities-bin plasma-disks kup-backup kde-inotify-survey budgie-sddm-theme qrca"
         chroot /mnt apt install -y $kde_pkgs
         grep -q "GTK_USE_PORTAL" /mnt/etc/environment 2>/dev/null || \
