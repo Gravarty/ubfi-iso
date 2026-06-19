@@ -1032,6 +1032,7 @@ mountmenu() {
 
 debootstrapmenu() {
     local options=()
+    options+=("stonking"  "Ubuntu 26.10")
     options+=("resolute"  "Ubuntu 26.04 LTS")
     options+=("questing"  "Ubuntu 25.10")
     options+=("plucky"    "Ubuntu 25.04")
