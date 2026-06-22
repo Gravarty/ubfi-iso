@@ -4,6 +4,15 @@
 # Inspired by archfi (MatMoul) - https://github.com/MatMoul/archfi
 # For Ubuntu via debootstrap
 
+# ##########################################################
+# ## WICHTIG FUER JEDE ZUKUENFTIGE BEARBEITUNG (auch KI):  ##
+# ## Bei JEDER inhaltlichen Aenderung an dieser Datei      ##
+# ## MUSS ubfiversion erhoeht werden (0.1 -> 0.2 -> ...).  ##
+# ## Sonst erkennt der eingebaute Updater keine neue       ##
+# ## Version. Format: Punktzahl, in doppelten "".          ##
+# ##########################################################
+ubfiversion="0.1"
+
 apptitle="Ubuntu Fast Install (ubfi)"
 MOUNTPOINT="/mnt"
 LANG_SEL="en"
@@ -2127,6 +2136,37 @@ fi
 
 trap 'clear; echo "==> Unterbrochen, räume auf..."; chroot_cleanup 2>/dev/null; exit 1' INT TERM
 
+# --------------------------------------------------------
+# Updater: prüft Remote-Version und aktualisiert bei Bedarf
+# --------------------------------------------------------
+UBFI_RAW_URL="https://raw.githubusercontent.com/Gravarty/ubfi-iso/main/ubfi.sh"
+
+do_update() {
+    if curl -sf --max-time 20 -o "$0.new" "$UBFI_RAW_URL" \
+        && bash -n "$0.new"; then
+        chmod +x "$0.new"
+        mv "$0.new" "$0"
+        dialog --backtitle "$apptitle" --msgbox "Aktualisiert. ubfi startet neu." 6 40
+        exec "$0"
+    else
+        rm -f "$0.new"
+        dialog --backtitle "$apptitle" --msgbox "Update fehlgeschlagen." 6 40
+    fi
+}
+
+check_update() {
+    command -v curl >/dev/null 2>&1 || return
+    local remote
+    remote=$(curl -sf --max-time 5 "$UBFI_RAW_URL" \
+        | grep -m1 '^ubfiversion=' | cut -d'"' -f2)
+    [ -z "$remote" ] && return
+    if [ "$remote" != "$ubfiversion" ]; then
+        dialog --backtitle "$apptitle" --yesno \
+            "Neue Version $remote verfügbar (lokal $ubfiversion).\nJetzt aktualisieren?" 8 50 \
+            && do_update
+    fi
+}
+
 echo "Initialisiere ubfi, bitte warten..."
 if ! command -v dialog >/dev/null 2>&1 || ! command -v debootstrap >/dev/null 2>&1; then
     apt-get update -qq
@@ -2155,5 +2195,7 @@ done
 
 clear
 networkmenu
+clear
+check_update
 clear
 mainmenu
