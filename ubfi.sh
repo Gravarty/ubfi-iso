@@ -11,7 +11,7 @@
 # ## Sonst erkennt der eingebaute Updater keine neue       ##
 # ## Version. Format: Punktzahl, in doppelten "".          ##
 # ##########################################################
-ubfiversion="0.1"
+ubfiversion="0.2"
 
 apptitle="Ubuntu Fast Install (ubfi)"
 MOUNTPOINT="/mnt"
@@ -2177,7 +2177,7 @@ fi
 set_language
 
 # Fehlende debootstrap-Scripts für neue/beta Releases nachladen
-for release_script in resolute questing; do
+for release_script in stonking resolute questing; do
     if [ ! -f "/usr/share/debootstrap/scripts/${release_script}" ]; then
         echo "==> debootstrap-Script fuer ${release_script} fehlt, erstelle Fallback..."
         if [ -f "/usr/share/debootstrap/scripts/noble" ]; then
