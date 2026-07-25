@@ -11,7 +11,7 @@
 # ## Sonst erkennt der eingebaute Updater keine neue       ##
 # ## Version. Format: Punktzahl, in doppelten "".          ##
 # ##########################################################
-ubfiversion="0.2"
+ubfiversion="0.3"
 
 apptitle="Ubuntu Fast Install (ubfi)"
 MOUNTPOINT="/mnt"
@@ -197,6 +197,40 @@ Fortfahren?"
         T_PART_HOME="Home Partition wählen"
         T_FS_ROOT="Root Filesystem"
         T_FS_HOME="Home Filesystem"
+        T_RESCUE_SHELL="Rescue Shell"
+        T_RESCUE_SHELL_DESC="Shell ohne Mount/Format (z.B. für Backup)"
+        T_BACKUP="Backup"
+        T_BACKUP_DESC="Festplatte sichern / wiederherstellen"
+        T_BACKUP_TITLE="Backup"
+        T_BACKUP_CREATE="Erstellen"
+        T_BACKUP_CREATE_DESC="Image einer Festplatte erstellen"
+        T_BACKUP_RESTORE="Wiederherstellen"
+        T_BACKUP_RESTORE_DESC="Image auf eine Festplatte zurückspielen"
+        T_BACKUP_SRC_DISK="Quell-Festplatte wählen (wird gesichert)"
+        T_BACKUP_DST_DISK="Ziel-Festplatte wählen (Backup-Speicherort)"
+        T_BACKUP_DST_DISK_RESTORE="Quell-Festplatte wählen (enthält das Image)"
+        T_BACKUP_TARGET_DISK="Ziel-Festplatte wählen (wird überschrieben!)"
+        T_BACKUP_NO_OTHER_DISK="Keine weitere Festplatte gefunden, auf die gesichert werden kann.\nBitte ein USB-Laufwerk anschließen."
+        T_BACKUP_MOUNTING="Hänge Backup-Laufwerk ein..."
+        T_BACKUP_MOUNT_FAIL="Konnte Backup-Laufwerk nicht einhängen (unbekanntes/kein Dateisystem?)."
+        T_BACKUP_SELECT_PART="Partition auf dem Backup-Laufwerk wählen"
+        T_BACKUP_SELECT_FOLDER="Zielordner wählen"
+        T_BACKUP_NEW_FOLDER="Neuen Ordner erstellen"
+        T_BACKUP_NEW_FOLDER_NAME="Name des neuen Ordners:"
+        T_BACKUP_UP="[.. nach oben]"
+        T_BACKUP_HERE="[Diesen Ordner wählen]"
+        T_BACKUP_FILENAME="Dateiname für das Backup:"
+        T_BACKUP_CONFIRM_CREATE="Festplatte %s wird komplett gesichert nach:\n%s\n\nDies kann je nach Größe sehr lange dauern.\nFortfahren?"
+        T_BACKUP_CONFIRM_RESTORE="ACHTUNG: Alle Daten auf %s werden unwiderruflich überschrieben!\n\nImage: %s\nZiel : %s\n\nWirklich fortfahren?"
+        T_BACKUP_RUNNING_CREATE="Erstelle Backup, bitte warten (siehe Fortschritt)..."
+        T_BACKUP_RUNNING_RESTORE="Stelle Backup wieder her, bitte warten (siehe Fortschritt)..."
+        T_BACKUP_OK="Backup erfolgreich abgeschlossen!"
+        T_BACKUP_FAIL="FEHLER: Backup-Vorgang fehlgeschlagen!"
+        T_BACKUP_NO_IMAGES="Keine Backup-Images (*.img, *.img.gz) in diesem Ordner gefunden."
+        T_BACKUP_SELECT_IMAGE="Backup-Image wählen"
+        T_BACKUP_NO_SRC="Bitte zuerst die zu sichernde Festplatte auswählen (nicht dieselbe wie Ziel)."
+        T_BACKUP_COMPRESS="Backup komprimieren (gzip)?"
+        T_BACKUP_COMPRESS_TITLE="Komprimierung"
     else
         T_MAINMENU="Main Menu"
         T_LANGUAGE="Language"
@@ -361,6 +395,40 @@ Continue?"
         T_PART_HOME="Select Home Partition"
         T_FS_ROOT="Root Filesystem"
         T_FS_HOME="Home Filesystem"
+        T_RESCUE_SHELL="Rescue Shell"
+        T_RESCUE_SHELL_DESC="Shell without mount/format (e.g. for backup)"
+        T_BACKUP="Backup"
+        T_BACKUP_DESC="Backup / restore a disk"
+        T_BACKUP_TITLE="Backup"
+        T_BACKUP_CREATE="Create"
+        T_BACKUP_CREATE_DESC="Create an image of a disk"
+        T_BACKUP_RESTORE="Restore"
+        T_BACKUP_RESTORE_DESC="Write an image back to a disk"
+        T_BACKUP_SRC_DISK="Select source disk (will be backed up)"
+        T_BACKUP_DST_DISK="Select destination disk (backup storage)"
+        T_BACKUP_DST_DISK_RESTORE="Select source disk (contains the image)"
+        T_BACKUP_TARGET_DISK="Select target disk (will be overwritten!)"
+        T_BACKUP_NO_OTHER_DISK="No other disk found to back up to.\nPlease connect a USB drive."
+        T_BACKUP_MOUNTING="Mounting backup drive..."
+        T_BACKUP_MOUNT_FAIL="Could not mount backup drive (unknown/no filesystem?)."
+        T_BACKUP_SELECT_PART="Select partition on the backup drive"
+        T_BACKUP_SELECT_FOLDER="Select destination folder"
+        T_BACKUP_NEW_FOLDER="Create new folder"
+        T_BACKUP_NEW_FOLDER_NAME="Name of new folder:"
+        T_BACKUP_UP="[.. up one level]"
+        T_BACKUP_HERE="[Select this folder]"
+        T_BACKUP_FILENAME="Filename for the backup:"
+        T_BACKUP_CONFIRM_CREATE="Disk %s will be fully backed up to:\n%s\n\nThis can take a very long time depending on the disk size.\nContinue?"
+        T_BACKUP_CONFIRM_RESTORE="WARNING: All data on %s will be permanently overwritten!\n\nImage : %s\nTarget: %s\n\nReally continue?"
+        T_BACKUP_RUNNING_CREATE="Creating backup, please wait (see progress)..."
+        T_BACKUP_RUNNING_RESTORE="Restoring backup, please wait (see progress)..."
+        T_BACKUP_OK="Backup completed successfully!"
+        T_BACKUP_FAIL="ERROR: Backup operation failed!"
+        T_BACKUP_NO_IMAGES="No backup images (*.img, *.img.gz) found in this folder."
+        T_BACKUP_SELECT_IMAGE="Select backup image"
+        T_BACKUP_NO_SRC="Please select the disk to back up first (must differ from destination)."
+        T_BACKUP_COMPRESS="Compress backup (gzip)?"
+        T_BACKUP_COMPRESS_TITLE="Compression"
     fi
 }
 
@@ -477,6 +545,8 @@ mainmenu() {
         options+=("Finishing"    "Benutzer, Root-PW, NetworkManager")
         options+=("$T_SHELL"     "$T_SHELL_DESC")
         options+=("$T_REMOUNT"   "$T_REMOUNT_DESC")
+        options+=("$T_BACKUP"    "$T_BACKUP_DESC")
+        options+=("$T_RESCUE_SHELL" "$T_RESCUE_SHELL_DESC")
         options+=("$T_REBOOT"    "")
 
         local sel
@@ -495,6 +565,8 @@ mainmenu() {
             "Finishing")   finishingmenu;   nextitem="$T_SHELL";;
             "$T_SHELL")    clear; chroot /mnt /usr/bin/env LANG="${locale_val}.UTF-8" LANGUAGE="${locale_val%%_*}:en" /bin/bash;;
             "$T_REMOUNT")  remountmenu;;
+            "$T_BACKUP")   backupmenu;;
+            "$T_RESCUE_SHELL") clear; echo "==> $T_RESCUE_SHELL - kein Mount/Format erforderlich."; echo "==> 'exit' beendet die Shell und kehrt ins Menü zurück."; echo ""; bash; nextitem="$T_RESCUE_SHELL";;
             "$T_REBOOT")   rebootmenu;;
         esac
     done
@@ -2111,6 +2183,391 @@ remountmenu() {
     echo "Mirror  : ${UBUNTU_MIRROR:-unbekannt}"
     echo "Hostname: ${hostname_val}"
     pressanykey
+}
+
+# --------------------------------------------------------
+# Backup / Restore
+# --------------------------------------------------------
+
+# Ermittelt die Disk, auf der das laufende System liegt (z.B. /dev/sda),
+# ausgehend von root_part (z.B. /dev/sda2 oder /dev/nvme0n1p2).
+backup_running_system_disk() {
+    local rp="$1"
+    local disk
+    disk=$(lsblk -no PKNAME "$rp" 2>/dev/null | head -n1)
+    [ -n "$disk" ] && echo "/dev/$disk" && return
+    # Fallback: Suffix-basiert abschneiden
+    echo "$rp" | sed -E 's/p?[0-9]+$//'
+}
+
+# Liste aller Disks außer der angegebenen (Quell-)Disk, für die Zielauswahl.
+selectdisk_excluding() {
+    local title="$1"
+    local exclude="$2"
+    local items result
+    items=$(lsblk -d -p -n -l -o NAME,SIZE -e 7,11)
+    local options=()
+    local IFS_ORIG=$IFS
+    IFS=$'\n'
+    for item in $items; do
+        local name="${item%% *}"
+        [ "$name" = "$exclude" ] && continue
+        options+=("$name" "${item##* }")
+    done
+    IFS=$IFS_ORIG
+    if [ "${#options[@]}" -eq 0 ]; then
+        dialog --backtitle "$apptitle" --title "$T_BACKUP_TITLE" \
+            --msgbox "$T_BACKUP_NO_OTHER_DISK" 8 60
+        return 1
+    fi
+    result=$(dialog --backtitle "$apptitle" --title "$title" \
+        --cancel-button "$T_BACK" \
+        --menu "" 0 0 0 "${options[@]}" 3>&1 1>&2 2>&3)
+    [ "$?" != "0" ] && return 1
+    echo "$result"
+}
+
+# Hängt ein Zielaufwerk temporär ein (erkennt NTFS/exFAT/BTRFS/ext etc. automatisch)
+# und lässt bei mehreren Partitionen eine auswählen. Setzt BK_MOUNTPOINT bei Erfolg.
+backup_mount_target_disk() {
+    local disk="$1"
+    local parts
+    parts=$(lsblk -p -n -l -o NAME,SIZE,TYPE "$disk" 2>/dev/null | grep -E '\bpart\b')
+
+    local target_part
+    if [ -z "$parts" ]; then
+        # Keine Partitionstabelle erkannt - evtl. die Disk selbst als Dateisystem
+        target_part="$disk"
+    else
+        local count
+        count=$(echo "$parts" | wc -l)
+        if [ "$count" -eq 1 ]; then
+            target_part=$(echo "$parts" | awk '{print $1}')
+        else
+            local options=()
+            local IFS_ORIG=$IFS
+            IFS=$'\n'
+            for item in $parts; do
+                local name size
+                name=$(echo "$item" | awk '{print $1}')
+                size=$(echo "$item" | awk '{print $2}')
+                options+=("$name" "$size")
+            done
+            IFS=$IFS_ORIG
+            target_part=$(dialog --backtitle "$apptitle" --title "$T_BACKUP_SELECT_PART" \
+                --cancel-button "$T_BACK" \
+                --menu "" 0 0 0 "${options[@]}" 3>&1 1>&2 2>&3)
+            [ "$?" != "0" ] && return 1
+        fi
+    fi
+
+    local fstype
+    fstype=$(blkid -s TYPE -o value "$target_part" 2>/dev/null)
+
+    BK_MOUNTPOINT="/mnt/ubfi-backup"
+    mkdir -p "$BK_MOUNTPOINT"
+
+    # Bereits gemountet?
+    local already
+    already=$(findmnt -n -o TARGET "$target_part" 2>/dev/null | head -n1)
+    if [ -n "$already" ]; then
+        BK_MOUNTPOINT="$already"
+        return 0
+    fi
+
+    clear
+    echo "==> $T_BACKUP_MOUNTING ($target_part, fs: ${fstype:-unbekannt})"
+
+    local mnt_ok=1
+    case "$fstype" in
+        ntfs)
+            command -v ntfs-3g >/dev/null 2>&1 || apt-get install -y ntfs-3g >/dev/null 2>&1
+            mount -t ntfs-3g "$target_part" "$BK_MOUNTPOINT" && mnt_ok=0
+            ;;
+        exfat)
+            command -v mount.exfat >/dev/null 2>&1 || apt-get install -y exfatprogs exfat-fuse >/dev/null 2>&1
+            mount -t exfat "$target_part" "$BK_MOUNTPOINT" && mnt_ok=0
+            ;;
+        btrfs)
+            mount "$target_part" "$BK_MOUNTPOINT" && mnt_ok=0
+            ;;
+        vfat|fat32|fat)
+            mount -t vfat "$target_part" "$BK_MOUNTPOINT" && mnt_ok=0
+            ;;
+        "")
+            dialog --backtitle "$apptitle" --title "$T_BACKUP_TITLE" \
+                --msgbox "$T_BACKUP_MOUNT_FAIL" 8 60
+            return 1
+            ;;
+        *)
+            mount "$target_part" "$BK_MOUNTPOINT" && mnt_ok=0
+            ;;
+    esac
+
+    if [ "$mnt_ok" != "0" ]; then
+        dialog --backtitle "$apptitle" --title "$T_BACKUP_TITLE" \
+            --msgbox "$T_BACKUP_MOUNT_FAIL" 8 60
+        return 1
+    fi
+    return 0
+}
+
+# Interaktiver Ordner-Browser innerhalb von BK_MOUNTPOINT.
+# Setzt BK_SELECTED_DIR bei Erfolg.
+backup_browse_folder() {
+    local base="$BK_MOUNTPOINT"
+    local cur="$base"
+
+    while true; do
+        local options=()
+        options+=("$T_BACKUP_HERE" ".")
+        [ "$cur" != "$base" ] && options+=("$T_BACKUP_UP" "..")
+        options+=("$T_BACKUP_NEW_FOLDER" "+")
+
+        local d
+        while IFS= read -r d; do
+            [ -z "$d" ] && continue
+            options+=("$(basename "$d")" "/")
+        done < <(find "$cur" -maxdepth 1 -mindepth 1 -type d 2>/dev/null | sort)
+
+        local sel
+        sel=$(dialog --backtitle "$apptitle" --title "$T_BACKUP_SELECT_FOLDER" \
+            --cancel-button "$T_BACK" \
+            --menu "$cur" 0 0 0 "${options[@]}" 3>&1 1>&2 2>&3)
+        [ "$?" != "0" ] && return 1
+
+        case "$sel" in
+            "$T_BACKUP_HERE")
+                BK_SELECTED_DIR="$cur"
+                return 0
+                ;;
+            "$T_BACKUP_UP")
+                cur=$(dirname "$cur")
+                ;;
+            "$T_BACKUP_NEW_FOLDER")
+                local newname
+                newname=$(dialog --backtitle "$apptitle" --title "$T_BACKUP_NEW_FOLDER" \
+                    --inputbox "$T_BACKUP_NEW_FOLDER_NAME" 0 0 3>&1 1>&2 2>&3)
+                [ "$?" != "0" ] && continue
+                [ -z "$newname" ] && continue
+                mkdir -p "$cur/$newname" 2>/dev/null
+                ;;
+            *)
+                cur="$cur/$sel"
+                ;;
+        esac
+    done
+}
+
+# Interaktive Auswahl einer *.img / *.img.gz Datei innerhalb eines Verzeichnisbaums.
+backup_browse_image() {
+    local base="$BK_MOUNTPOINT"
+    local cur="$base"
+
+    while true; do
+        local options=()
+        [ "$cur" != "$base" ] && options+=("$T_BACKUP_UP" "..")
+
+        local d f
+        while IFS= read -r d; do
+            [ -z "$d" ] && continue
+            options+=("$(basename "$d")" "/")
+        done < <(find "$cur" -maxdepth 1 -mindepth 1 -type d 2>/dev/null | sort)
+
+        while IFS= read -r f; do
+            [ -z "$f" ] && continue
+            options+=("$(basename "$f")" "$(du -h "$f" 2>/dev/null | cut -f1)")
+        done < <(find "$cur" -maxdepth 1 -mindepth 1 -type f \( -name '*.img' -o -name '*.img.gz' \) 2>/dev/null | sort)
+
+        if [ "${#options[@]}" -eq 0 ] || { [ "${#options[@]}" -eq 2 ] && [ "$cur" = "$base" ] && [ -z "$(find "$cur" -maxdepth 1 -type f \( -name '*.img' -o -name '*.img.gz' \) 2>/dev/null)" ]; }; then
+            :
+        fi
+
+        local sel
+        sel=$(dialog --backtitle "$apptitle" --title "$T_BACKUP_SELECT_IMAGE" \
+            --cancel-button "$T_BACK" \
+            --menu "$cur" 0 0 0 "${options[@]}" 3>&1 1>&2 2>&3)
+        [ "$?" != "0" ] && return 1
+
+        if [ "$sel" = "$T_BACKUP_UP" ]; then
+            cur=$(dirname "$cur")
+            continue
+        fi
+
+        if [ -d "$cur/$sel" ]; then
+            cur="$cur/$sel"
+            continue
+        elif [ -f "$cur/$sel" ]; then
+            BK_SELECTED_IMAGE="$cur/$sel"
+            return 0
+        fi
+    done
+}
+
+# Kopiert eine Blockdisk mit Fortschrittsanzeige nach stdout (dd + pv, mit Fallback).
+backup_copy_with_progress() {
+    local src="$1"
+    local dst="$2"
+    local size
+    size=$(blockdev --getsize64 "$src" 2>/dev/null)
+
+    if command -v pv >/dev/null 2>&1; then
+        if [ -n "$size" ]; then
+            pv -s "$size" "$src" > "$dst"
+        else
+            pv "$src" > "$dst"
+        fi
+    else
+        dd if="$src" of="$dst" bs=4M status=progress conv=fsync
+    fi
+}
+
+backup_create() {
+    local src_disk dst_disk
+
+    src_disk=$(selectdisk "$T_BACKUP_SRC_DISK") || return
+    [ -z "$src_disk" ] && return
+
+    dst_disk=$(selectdisk_excluding "$T_BACKUP_DST_DISK" "$src_disk") || return
+    [ -z "$dst_disk" ] && return
+
+    backup_mount_target_disk "$dst_disk" || return
+    backup_browse_folder || return
+
+    local fname
+    local default_fname="backup-$(basename "$src_disk")-$(date +%Y%m%d-%H%M%S).img"
+    fname=$(dialog --backtitle "$apptitle" --title "$T_BACKUP_FILENAME" \
+        --inputbox "$T_BACKUP_FILENAME" 0 0 "$default_fname" 3>&1 1>&2 2>&3)
+    [ "$?" != "0" ] && return
+    [ -z "$fname" ] && fname="$default_fname"
+
+    local do_compress="n"
+    dialog --backtitle "$apptitle" --title "$T_BACKUP_COMPRESS_TITLE" \
+        --yesno "$T_BACKUP_COMPRESS" 0 0
+    [ "$?" = "0" ] && do_compress="y"
+
+    if [ "$do_compress" = "y" ]; then
+        case "$fname" in
+            *.img.gz) : ;;
+            *.img) fname="${fname}.gz" ;;
+            *) fname="${fname}.img.gz" ;;
+        esac
+    else
+        case "$fname" in
+            *.img) : ;;
+            *) fname="${fname}.img" ;;
+        esac
+    fi
+
+    local dest_path="${BK_SELECTED_DIR}/${fname}"
+
+    dialog --backtitle "$apptitle" --title "$T_BACKUP_TITLE" \
+        --defaultno --yesno "$(printf "$T_BACKUP_CONFIRM_CREATE" "$src_disk" "$dest_path")" 0 0
+    [ "$?" != "0" ] && return
+
+    clear
+    echo "==> $T_BACKUP_RUNNING_CREATE"
+    echo "Quelle: $src_disk"
+    echo "Ziel  : $dest_path"
+    echo ""
+
+    local ok=1
+    if [ "$do_compress" = "y" ]; then
+        if command -v pv >/dev/null 2>&1; then
+            local size
+            size=$(blockdev --getsize64 "$src_disk" 2>/dev/null)
+            if [ -n "$size" ]; then
+                pv -s "$size" "$src_disk" | gzip -c > "$dest_path" && ok=0
+            else
+                pv "$src_disk" | gzip -c > "$dest_path" && ok=0
+            fi
+        else
+            dd if="$src_disk" bs=4M status=progress conv=fsync | gzip -c > "$dest_path" && ok=0
+        fi
+    else
+        backup_copy_with_progress "$src_disk" "$dest_path" && ok=0
+    fi
+    sync
+
+    if [ "$ok" = "0" ]; then
+        dialog --backtitle "$apptitle" --title "$T_BACKUP_TITLE" --msgbox "$T_BACKUP_OK" 6 50
+    else
+        rm -f "$dest_path" 2>/dev/null
+        dialog --backtitle "$apptitle" --title "$T_BACKUP_TITLE" --msgbox "$T_BACKUP_FAIL" 6 50
+    fi
+}
+
+backup_restore() {
+    local src_disk
+
+    src_disk=$(selectdisk "$T_BACKUP_DST_DISK_RESTORE") || return
+    [ -z "$src_disk" ] && return
+
+    backup_mount_target_disk "$src_disk" || return
+    backup_browse_image || return
+
+    local target_disk
+    target_disk=$(selectdisk_excluding "$T_BACKUP_TARGET_DISK" "$src_disk") || return
+    [ -z "$target_disk" ] && return
+
+    dialog --backtitle "$apptitle" --title "$T_WARNING" \
+        --defaultno --yesno "$(printf "$T_BACKUP_CONFIRM_RESTORE" "$target_disk" "$BK_SELECTED_IMAGE" "$target_disk")" 0 0
+    [ "$?" != "0" ] && return
+
+    clear
+    echo "==> $T_BACKUP_RUNNING_RESTORE"
+    echo "Image : $BK_SELECTED_IMAGE"
+    echo "Ziel  : $target_disk"
+    echo ""
+
+    umount "${target_disk}"* 2>/dev/null
+
+    local ok=1
+    case "$BK_SELECTED_IMAGE" in
+        *.img.gz)
+            if command -v pv >/dev/null 2>&1; then
+                local csize
+                csize=$(stat -c%s "$BK_SELECTED_IMAGE" 2>/dev/null)
+                if [ -n "$csize" ]; then
+                    pv -s "$csize" "$BK_SELECTED_IMAGE" | gunzip -c | dd of="$target_disk" bs=4M conv=fsync && ok=0
+                else
+                    pv "$BK_SELECTED_IMAGE" | gunzip -c | dd of="$target_disk" bs=4M conv=fsync && ok=0
+                fi
+            else
+                gunzip -c "$BK_SELECTED_IMAGE" | dd of="$target_disk" bs=4M status=progress conv=fsync && ok=0
+            fi
+            ;;
+        *)
+            backup_copy_with_progress "$BK_SELECTED_IMAGE" "$target_disk" && ok=0
+            ;;
+    esac
+    sync
+    partprobe "$target_disk" 2>/dev/null
+
+    if [ "$ok" = "0" ]; then
+        dialog --backtitle "$apptitle" --title "$T_BACKUP_TITLE" --msgbox "$T_BACKUP_OK" 6 50
+    else
+        dialog --backtitle "$apptitle" --title "$T_BACKUP_TITLE" --msgbox "$T_BACKUP_FAIL" 6 50
+    fi
+}
+
+backupmenu() {
+    while true; do
+        local options=()
+        options+=("$T_BACKUP_CREATE"  "$T_BACKUP_CREATE_DESC")
+        options+=("$T_BACKUP_RESTORE" "$T_BACKUP_RESTORE_DESC")
+
+        local sel
+        sel=$(dialog --backtitle "$apptitle" --title "$T_BACKUP_TITLE" \
+            --cancel-button "$T_BACK" \
+            --menu "" 0 0 0 "${options[@]}" 3>&1 1>&2 2>&3)
+        [ "$?" != "0" ] && return
+
+        case "$sel" in
+            "$T_BACKUP_CREATE")  backup_create  ;;
+            "$T_BACKUP_RESTORE") backup_restore ;;
+        esac
+    done
 }
 
 rebootmenu() {
