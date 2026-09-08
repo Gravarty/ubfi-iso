@@ -11,7 +11,7 @@
 # ## Sonst erkennt der eingebaute Updater keine neue       ##
 # ## Version. Format: Punktzahl, in doppelten "".          ##
 # ##########################################################
-ubfiversion="0.5"
+ubfiversion="0.6"
 
 apptitle="Ubuntu Fast Install (ubfi)"
 MOUNTPOINT="/mnt"
@@ -1319,7 +1319,7 @@ configmenu() {
             "$T_LOCALE")         config_locale;    nextitem="$T_TIMEZONE";;
             "$T_TIMEZONE")       config_timezone;  nextitem="$T_FSTAB";;
             "$T_FSTAB")          fstabmenu;        nextitem="$T_BOOTLOADER";;
-            "$T_BOOTLOADER")     bootloadermenu;   nextitem="$T_PKG_BOOTSCREEN";;
+            "$T_BOOTLOADER")     bootloadermenu;   nextitem="$T_BOOTLOADER";;
             "$T_PKG_BOOTSCREEN") pkg_bootscreen;   nextitem="$T_PKG_I386";;
             "$T_PKG_I386")       pkg_i386;         nextitem="$T_PKG_I386";;
         esac
