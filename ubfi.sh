@@ -1,6 +1,6 @@
 #!/bin/bash
 
-# ubfi - Ubuntu Fast Install xD
+# ubfi - Ubuntu Fast Install
 # Inspired by archfi (MatMoul) - https://github.com/MatMoul/archfi
 # For Ubuntu via debootstrap
 
@@ -11,7 +11,7 @@
 # ## Sonst erkennt der eingebaute Updater keine neue       ##
 # ## Version. Format: Punktzahl, in doppelten "".          ##
 # ##########################################################
-ubfiversion="0.3"
+ubfiversion="0.4"
 
 apptitle="Ubuntu Fast Install (ubfi)"
 MOUNTPOINT="/mnt"
@@ -1874,18 +1874,15 @@ bootloader_systemd() {
     rm -rf /mnt/boot/grub 2>/dev/null
     rm -rf /mnt/boot/efi/EFI/ubuntu 2>/dev/null
 
-    echo "==> Blockiere GRUB/Shim Dependencies..."
+    echo "==> Blockiere GRUB/Shim Dependencies (dauerhaft)..."
     cat > /mnt/etc/apt/preferences.d/no-grub << 'EOF'
-Package: grub-efi-amd64 grub-efi-amd64-bin grub-efi-amd64-signed grub-efi-amd64-unsigned grub2-common grub-common grub-pc grub-pc-bin shim-signed secureboot-db mokutil os-prober sbsigntool
+Package: grub-efi-amd64 grub-efi-amd64-bin grub-efi-amd64-signed grub-efi-amd64-unsigned grub2-common grub-common grub-pc grub-pc-bin grub-gfxpayload-lists shim-signed secureboot-db mokutil os-prober sbsigntool
 Pin: release *
 Pin-Priority: -1
 EOF
 
     echo "==> Installiere systemd-boot + initramfs-tools + btrfs-progs..."
     chroot /mnt apt install -y --no-install-recommends systemd-boot systemd-boot-tools initramfs-tools btrfs-progs
-
-    echo "==> Entferne GRUB Block wieder..."
-    rm -f /mnt/etc/apt/preferences.d/no-grub
 
     echo "==> Setze kernel cmdline..."
     mkdir -p /mnt/etc/kernel
