@@ -1,6 +1,6 @@
 #!/bin/bash
 
-# ubfi - Ubuntu Fast Install
+# ubfi - Ubuntu Fast Install xD
 # Inspired by archfi (MatMoul) - https://github.com/MatMoul/archfi
 # For Ubuntu via debootstrap
 
