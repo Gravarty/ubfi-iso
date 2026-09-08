@@ -11,7 +11,7 @@
 # ## Sonst erkennt der eingebaute Updater keine neue       ##
 # ## Version. Format: Punktzahl, in doppelten "".          ##
 # ##########################################################
-ubfiversion="0.4"
+ubfiversion="0.5"
 
 apptitle="Ubuntu Fast Install (ubfi)"
 MOUNTPOINT="/mnt"
@@ -2103,6 +2103,10 @@ remountmenu() {
     [ "$p" = "none" ] && home_part="" || home_part="$p"
     [ -n "$home_part" ] && home_fs=$(blkid -s TYPE -o value "$home_part" 2>/dev/null)
 
+    p=$(selectpartition "Swap Partition" "${swap_part:-none}")
+    [ "$?" != "0" ] && return
+    [ "$p" = "none" ] && swap_part="" || swap_part="$p"
+
     clear
     # Bereits eingehängte /mnt Mounts sauber entfernen
     chroot_cleanup 2>/dev/null
@@ -2154,6 +2158,11 @@ remountmenu() {
         mkdir -p /mnt/boot/efi
         mount "$efi_part" /mnt/boot/efi
         BOOT_MODE="efi"
+    fi
+
+    if [ -n "$swap_part" ]; then
+        echo "==> Aktiviere Swap: ${swap_part}"
+        swapon "$swap_part" 2>/dev/null || true
     fi
 
     # UBUNTU_RELEASE und UBUNTU_MIRROR aus installiertem System lesen
