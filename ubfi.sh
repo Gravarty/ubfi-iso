@@ -11,7 +11,7 @@
 # ## Sonst erkennt der eingebaute Updater keine neue       ##
 # ## Version. Format: Punktzahl, in doppelten "".          ##
 # ##########################################################
-ubfiversion="0.6"
+ubfiversion="0.7"
 
 apptitle="Ubuntu Fast Install (ubfi)"
 MOUNTPOINT="/mnt"
@@ -548,6 +548,7 @@ mainmenu() {
         options+=("$T_BACKUP"    "$T_BACKUP_DESC")
         options+=("$T_RESCUE_SHELL" "$T_RESCUE_SHELL_DESC")
         options+=("$T_REBOOT"    "")
+        options+=("Ubfi Neustart" "Ubfi neu starten")
 
         local sel
         sel=$(dialog --backtitle "$apptitle" --title "$T_MAINMENU" \
@@ -568,6 +569,7 @@ mainmenu() {
             "$T_BACKUP")   backupmenu;;
             "$T_RESCUE_SHELL") clear; echo "==> $T_RESCUE_SHELL - kein Mount/Format erforderlich."; echo "==> 'exit' beendet die Shell und kehrt ins Menü zurück."; echo ""; bash; nextitem="$T_RESCUE_SHELL";;
             "$T_REBOOT")   rebootmenu;;
+            "Ubfi Neustart") clear; chroot_cleanup 2>/dev/null; exec "$0";;
         esac
     done
 }
