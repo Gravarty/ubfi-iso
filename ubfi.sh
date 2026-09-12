@@ -11,7 +11,7 @@
 # ## Sonst erkennt der eingebaute Updater keine neue       ##
 # ## Version. Format: Punktzahl, in doppelten "".          ##
 # ##########################################################
-ubfiversion="0.9"
+ubfiversion="0.10"
 
 apptitle="Ubuntu Fast Install (ubfi)"
 MOUNTPOINT="/mnt"
@@ -1321,7 +1321,7 @@ configmenu() {
             "$T_LOCALE")         config_locale;    nextitem="$T_TIMEZONE";;
             "$T_TIMEZONE")       config_timezone;  nextitem="$T_FSTAB";;
             "$T_FSTAB")          fstabmenu;        nextitem="$T_BOOTLOADER";;
-            "$T_BOOTLOADER")     bootloadermenu;   nextitem="$T_BOOTLOADER";;
+            "$T_BOOTLOADER")     configmenu_nextitem="$T_BOOTLOADER"; bootloadermenu; nextitem="$configmenu_nextitem";;
             "$T_PKG_BOOTSCREEN") pkg_bootscreen;   nextitem="$T_PKG_I386";;
             "$T_PKG_I386")       pkg_i386;         nextitem="$T_PKG_I386";;
         esac
@@ -1859,7 +1859,7 @@ bootloadermenu() {
     [ "$?" != "0" ] && return
 
     case $sel in
-        "systemd-boot") bootloader_systemd;;
+        "systemd-boot") bootloader_systemd && configmenu_nextitem="$T_PKG_BOOTSCREEN";;
         "grub-efi")     bootloader_grub_efi;;
         "grub-bios")    bootloader_grub_bios;;
     esac
@@ -1871,7 +1871,7 @@ bootloader_systemd() {
 
     dialog --backtitle "$apptitle" --title "systemd-boot" \
         --yesno "$(printf "$T_SDB_CONFIRM" "$uuid_root")" 0 0
-    [ "$?" != "0" ] && return
+    [ "$?" != "0" ] && return 1
 
     clear
     echo "==> Entferne GRUB vollständig..."
@@ -1928,9 +1928,9 @@ EOF
         echo "$T_NO_KERNEL"
     fi
     pressanykey
-}
-
-bootloader_grub_efi() {
+    configmenu_nextitem="$T_PKG_BOOTSCREEN"
+    return 0
+} {
     clear
     echo "==> Stelle sicher dass btrfs-progs und initramfs-tools installiert sind..."
     chroot /mnt apt install -y btrfs-progs initramfs-tools
