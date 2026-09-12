@@ -11,7 +11,7 @@
 # ## Sonst erkennt der eingebaute Updater keine neue       ##
 # ## Version. Format: Punktzahl, in doppelten "".          ##
 # ##########################################################
-ubfiversion="0.7"
+ubfiversion="0.8"
 
 apptitle="Ubuntu Fast Install (ubfi)"
 MOUNTPOINT="/mnt"
@@ -1539,8 +1539,7 @@ pkg_desktop() {
         local gnome_pkgs="gnome-shell gnome-session gdm3 gnome-terminal nautilus gnome-text-editor file-roller gnome-calculator gnome-disk-utility gnome-screenshot eog gnome-tweaks gnome-shell-extension-manager fonts-noto gstreamer1.0-plugins-good gstreamer1.0-plugins-base gstreamer1.0-alsa gstreamer1.0-pulseaudio gstreamer1.0-libav gstreamer1.0-vaapi gnome-system-monitor language-pack-gnome-${lang_code} language-pack-gnome-${lang_code}-base cifs-utils"
         local gnome_bloat="yelp* yaru-theme-gnome-shell"
         if ! chroot /mnt apt install -y $gnome_pkgs; then
-            dialog --backtitle "$apptitle" --title "Fehler" \
-                --msgbox "GNOME konnte nicht installiert werden.\nPrüfe apt-Quellen / Release-Kompatibilität." 0 0
+            pressanykey
             return
         fi
         dialog --backtitle "$apptitle" --title "$T_GNOME_BLOAT_TITLE" \
